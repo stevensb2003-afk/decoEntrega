@@ -156,10 +156,10 @@ export const columns: ColumnDef<Ticket>[] = [
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                 <DropdownMenuItem onSelect={handleSelect(() => setValidationModalOpen(true))}>
                   <Edit className="mr-2 h-4 w-4" />
-                  Validate / View
+                  Validar / Ver
                 </DropdownMenuItem>
                 {ticket.status !== 'Cancelado' && ticket.status !== 'Entregado' && (
                   <DropdownMenuItem onSelect={handleSelect(() => setCancelAlertOpen(true))} className="text-orange-600 focus:bg-orange-100 focus:text-orange-700">
@@ -174,7 +174,7 @@ export const columns: ColumnDef<Ticket>[] = [
                     onSelect={handleSelect(() => setDeleteAlertOpen(true))} 
                     className="text-destructive focus:bg-destructive/10 focus:text-destructive">
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Ticket
+                      Eliminar Tiquete
                   </DropdownMenuItem>
                   </>
                 )}
@@ -186,9 +186,9 @@ export const columns: ColumnDef<Ticket>[] = [
           <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
               <AlertDialogContent>
                   <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                   <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
                   <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete the ticket <span className='font-bold'>{ticket.ticketId}</span>.
+                      Esta acción no se puede deshacer. Esto eliminará permanentemente el tiquete <span className='font-bold'>{ticket.ticketId}</span>.
                       <br/><br/>
                       Escribe <strong>ELIMINAR</strong> para confirmar el borrado.
                       <Input
@@ -200,11 +200,12 @@ export const columns: ColumnDef<Ticket>[] = [
                   </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setDeleteConfirm('')}>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel onClick={() => setDeleteConfirm('')}>Cancelar</AlertDialogCancel>
                   <AlertDialogAction 
                       disabled={deleteConfirm !== 'ELIMINAR'}
                       onClick={() => deleteTicket(ticket.id)}
-                  >Delete Ticket</AlertDialogAction>
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >Eliminar Tiquete</AlertDialogAction>
                   </AlertDialogFooter>
               </AlertDialogContent>
           </AlertDialog>
@@ -228,4 +229,3 @@ export const columns: ColumnDef<Ticket>[] = [
     },
   },
 ];
-    
