@@ -234,15 +234,20 @@ const KanbanCard = ({ ticket, ticketsInColumn, onDragOverCard, onStatusChange, o
             {canDelete && (
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/70 hover:text-destructive hover:bg-destructive/10">
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                         <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the ticket <span className='font-bold'>{ticket.ticketId}</span>.
+                            Esta acción no se puede deshacer. Esto eliminará permanentemente el tiquete <span className='font-bold'>{ticket.ticketId}</span>.
                             <br/><br/>
                             Escribe <strong>ELIMINAR</strong> para confirmar el borrado.
                             <Input
@@ -254,11 +259,12 @@ const KanbanCard = ({ ticket, ticketsInColumn, onDragOverCard, onStatusChange, o
                         </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDeleteConfirm('')}>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel onClick={() => { setDeleteConfirm(''); }}>Cancelar</AlertDialogCancel>
                         <AlertDialogAction 
                             disabled={deleteConfirm !== 'ELIMINAR'}
                             onClick={() => deleteTicket(ticket.id)}
-                        >Delete Ticket</AlertDialogAction>
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >Eliminar Tiquete</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
