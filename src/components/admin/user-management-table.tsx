@@ -63,8 +63,8 @@ const ViewChangesModal = ({ user, isOpen, onOpenChange }: { user: User; isOpen: 
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Pending Changes for {user.name}</DialogTitle>
-                    <DialogDescription>Review the requested changes below.</DialogDescription>
+                    <DialogTitle>Cambios Pendientes para {user.name}</DialogTitle>
+                    <DialogDescription>Revisa los cambios solicitados a continuación.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
                     {user.pendingName && (
@@ -93,7 +93,7 @@ const ViewChangesModal = ({ user, isOpen, onOpenChange }: { user: User; isOpen: 
                 </div>
                  <DialogFooter>
                     <DialogClose asChild>
-                        <Button variant="secondary">Close</Button>
+                        <Button variant="secondary">Cerrar</Button>
                     </DialogClose>
                 </DialogFooter>
             </DialogContent>
@@ -172,11 +172,11 @@ export function UserManagementTable({ users }: UserManagementTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>User</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Pending Changes</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>Usuario</TableHead>
+            <TableHead>Rol</TableHead>
+            <TableHead>Estado</TableHead>
+            <TableHead>Cambios Pendientes</TableHead>
+            <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -196,17 +196,17 @@ export function UserManagementTable({ users }: UserManagementTableProps) {
               <TableCell>
                   <Badge variant="outline" className="inline-flex items-center gap-1 text-green-600 border-green-600 self-start">
                      <CheckCircle className="h-3 w-3" />
-                     Active
+                     Activo
                   </Badge>
               </TableCell>
                <TableCell>
                 {user.hasPendingChanges ? (
-                  <Button variant="destructive" size="sm" onClick={() => setViewingChangesUser(user)}>
+                   <Button variant="destructive" size="sm" onClick={() => setViewingChangesUser(user)}>
                     <AlertTriangle className="mr-2 h-4 w-4" />
-                    Review Request
+                    Revisar Solicitud
                   </Button>
                 ) : (
-                  <span className="text-sm text-muted-foreground">None</span>
+                   <span className="text-sm text-muted-foreground">Ninguno</span>
                 )}
               </TableCell>
               <TableCell className="text-right">
@@ -217,13 +217,13 @@ export function UserManagementTable({ users }: UserManagementTableProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                      <Dialog>
                         <DialogTrigger asChild>
                             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit User Profile
+                                 <Edit className="mr-2 h-4 w-4" />
+                                Editar Perfil
                             </DropdownMenuItem>
                         </DialogTrigger>
                         <EditProfileModal user={user} />
@@ -231,19 +231,19 @@ export function UserManagementTable({ users }: UserManagementTableProps) {
                     {user.hasPendingChanges && (
                         <>
                         <DropdownMenuItem onClick={() => setViewingChangesUser(user)} onSelect={(e) => e.preventDefault()}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Change Requests
+                             <Eye className="mr-2 h-4 w-4" />
+                            Ver Solicitudes de Cambio
                         </DropdownMenuItem>
                          <DropdownMenuItem onSelect={() => handleApprove(user.id, user)}>
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Approve Changes
+                             <CheckCircle className="mr-2 h-4 w-4" />
+                            Aprobar Cambios
                         </DropdownMenuItem>
                         </>
                     )}
                     <DropdownMenuSub>
                         <DropdownMenuSubTrigger>
-                            <Shield className="mr-2 h-4 w-4" />
-                            Change Role
+                             <Shield className="mr-2 h-4 w-4" />
+                            Cambiar Rol
                         </DropdownMenuSubTrigger>
                         <DropdownMenuSubContent>
                             <div className="p-2 space-y-2">
@@ -280,20 +280,20 @@ export function UserManagementTable({ users }: UserManagementTableProps) {
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete User
+                                 <Trash2 className="mr-2 h-4 w-4" />
+                                Eliminar Usuario
                             </DropdownMenuItem>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                             <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the user's document from Firestore. The authentication record must be deleted separately from the Firebase Console.
+                                Esta acción no se puede deshacer. Esto eliminará permanentemente el documento del usuario de Firestore. El registro de autenticación debe eliminarse por separado desde la Consola de Firebase.
                             </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(user.id)}>Continue</AlertDialogAction>
+                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(user.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Continuar</AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
