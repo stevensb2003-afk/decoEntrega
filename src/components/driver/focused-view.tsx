@@ -5,12 +5,14 @@ import { useUser } from '@/firebase';
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { ChevronLeft, ChevronRight, Copy, MapPin, Phone, CheckCircle, Hash, User as UserIcon, MessageSquare, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Copy, MapPin, Phone, CheckCircle, Hash, User as UserIcon, MessageSquare, Info, Banknote, CheckCircle2 } from 'lucide-react';
 import { Ticket, User } from '@/lib/types';
 import { ValidationModal } from '../dashboard/validation-modal';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 const NoDeliveries = () => (
     <Card className="text-center py-12">
@@ -88,11 +90,32 @@ export function FocusedView() {
         <>
           <Card className="overflow-hidden shadow-xl">
             <CardHeader className="bg-muted/30 p-4">
-                <div className='flex justify-between items-center'>
-                  <CardDescription>Entrega #{currentIndex + 1} de {tickets.length}</CardDescription>
-                  <div className="font-bold text-lg text-foreground">{currentTicket.ticketId}</div>
+                <div className='flex justify-between items-start'>
+                  <div className="space-y-1">
+                    <CardDescription>Entrega #{currentIndex + 1} de {tickets.length}</CardDescription>
+                    <CardTitle className="text-2xl font-bold font-headline">{currentTicket.customerName}</CardTitle>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="font-bold text-lg text-foreground">{currentTicket.ticketId}</div>
+                    {currentTicket.paymentmethod && (
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "px-2 py-1 flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]",
+                          currentTicket.paymentmethod.toLowerCase().includes('contra entrega') 
+                            ? "bg-orange-100 text-orange-700 border-orange-200" 
+                            : "bg-green-100 text-green-700 border-green-200"
+                        )}
+                      >
+                        {currentTicket.paymentmethod.toLowerCase().includes('contra entrega') 
+                          ? <Banknote className="w-3.5 h-3.5" /> 
+                          : <CheckCircle2 className="w-3.5 h-3.5" />
+                        }
+                        {currentTicket.paymentmethod}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <CardTitle className="text-2xl font-bold font-headline pt-1">{currentTicket.customerName}</CardTitle>
             </CardHeader>
         <CardContent className="p-4 space-y-4 text-base">
             
