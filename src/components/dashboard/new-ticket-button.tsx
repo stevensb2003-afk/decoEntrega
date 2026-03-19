@@ -182,14 +182,12 @@ export function NewTicketButton() {
                          value={field.value} 
                          onChange={(url, lat, lng, addr) => {
                              field.onChange(url);
-                             if (lat !== undefined && lng !== undefined) {
-                                  form.setValue('locationLat' as any, lat);
-                                  form.setValue('locationLng' as any, lng);
-                             }
-                             if (addr && !form.getValues('locationdetails' as any)) {
-                                  form.setValue('locationdetails' as any, addr);
-                             }
-                         }} 
+                              if (lat !== undefined && lng !== undefined) {
+                                   form.setValue('locationLat' as any, lat);
+                                   form.setValue('locationLng' as any, lng);
+                              }
+                              // Removed automatic setting of locationdetails to avoid "D" bug
+                          }} 
                          placeholder={question.placeholder || "Buscar ubicación en el mapa..."} 
                      />
                  );

@@ -246,9 +246,7 @@ export function EditTicketModal({ ticket, isOpen, onOpenChange }: EditTicketModa
                                   form.setValue('locationLat' as any, lat);
                                   form.setValue('locationLng' as any, lng);
                              }
-                             if (addr && !form.getValues('locationdetails' as any)) {
-                                  form.setValue('locationdetails' as any, addr);
-                             }
+                             // Removed automatic setting of locationdetails to avoid "D" bug
                          }} 
                          placeholder={question.placeholder || "Buscar ubicación en el mapa..."} 
                      />

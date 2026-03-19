@@ -116,7 +116,8 @@ export function LocationPicker({ value, onChange, placeholder, initialLat, initi
                             onChange={(e) => {
                                 setAddressText(e.target.value);
                                 // Make sure to still sync text-only inputs if they don't select from map
-                                onChange(e.target.value, markerPos.lat, markerPos.lng, e.target.value);
+                                // Only pass url, lat, lng. Don't pass the search text as the confirmed address.
+                                onChange(e.target.value, markerPos.lat, markerPos.lng);
                             }}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {

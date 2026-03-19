@@ -159,7 +159,7 @@ export function ScheduleTicketButton() {
         if (config?.ticketForm) {
             defaultValues = config.ticketForm.reduce((acc, q) => {
                  if (q.type !== 'date') {
-                    acc[q.id as keyof FormData] = '';
+                    (acc as any)[q.id] = '';
                 }
                 return acc;
             }, {} as Partial<FormData>);
@@ -232,9 +232,7 @@ export function ScheduleTicketButton() {
                             field.onChange(url);
                             form.setValue('locationLat', lat, { shouldDirty: true });
                             form.setValue('locationLng', lng, { shouldDirty: true });
-                            if (details) {
-                                form.setValue('locationdetails', details, { shouldDirty: true });
-                            }
+                            // Removed automatic setting of locationdetails to avoid "D" bug
                         }}
                         placeholder={question.placeholder}
                     />
