@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isRole(role) {
+      // Allow reading the user's own document to check their role.
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return request.auth != null && (
+        (userData.roles != null && role in userData.roles) || 
+        (userData.role == role)
+      );
+    }
+
+    // PUBLIC READ, PROTECTED WRITE
+    match /{document=**} {
+      allow read: if true;
+    }
+
+    match /users/{userId} {
+      // Anyone can create a user document (e.g., on signup)
+      allow create: if true; 
+      // Only the user themselves or an admin can update/delete
+      allow update, delete: if isOwner(userId) || isRole('admin');
+    }
+
+    match /tickets/{ticketId} {
+      // Any authenticated user can create a ticket. Ownership is set in the document.
+      allow create: if request.auth != null;
+      // Only an authenticated user who is an admin, owner, or driver can update.
+      allow update: if request.auth != null && (
+                    isRole('admin') ||
+                    resource.data.driverId == request.auth.uid ||
+                    resource.data.ownerId == request.auth.uid
+                  );
+      // Only admins can delete tickets.
+      allow delete: if request.auth != null && isRole('admin');
+    }
+
+    match /customers/{customerId} {
+      // Any authenticated user can create/update customers.
+      allow write: if request.auth != null;
+    }
+
+    match /settings/{settingId} {
+      // Only admins can change settings.
+      allow write: if request.auth != null && isRole('admin');
+    }
+
+    match /blockedDates/{date} {
+      // Only admins can block/unblock dates.
+      allow write: if request.auth != null && isRole('admin');
+    }
+  }
+}

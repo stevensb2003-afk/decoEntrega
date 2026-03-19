@@ -1,0 +1,210 @@
+{
+  "entities": {
+    "Ticket": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Ticket",
+      "type": "object",
+      "description": "Represents a delivery ticket.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Ticket entity."
+        },
+        "ticketId": {
+          "type": "string",
+          "description": "Automatically generated ticket ID (e.g., ETG-0001)."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name associated with the ticket/delivery."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number for the delivery contact."
+        },
+        "googleMapsLink": {
+          "type": "string",
+          "description": "Google Maps link for the delivery location.",
+          "format": "uri"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the ticket (e.g., Pending, Prepared, En Route, Delivered)."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to User who owns the delivery. (Relationship: User 1:N Ticket)"
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Reference to Customer who is receiving delivery. (Relationship: Customer 1:N Ticket)"
+        },
+        "deliveryPriority": {
+          "type": "number",
+          "description": "Priority of the delivery route optimization."
+        },
+        "completionDate": {
+          "type": "string",
+          "description": "Date when the ticket was completed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ticketId",
+        "name",
+        "phone",
+        "googleMapsLink",
+        "status",
+        "ownerId",
+        "customerId",
+        "deliveryPriority"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "roles": {
+          "type": "array",
+          "description": "Roles of the user (e.g., Driver, Admin).",
+          "items": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "vendedor",
+              "chofer",
+              "bodeguero"
+            ]
+          }
+        },
+        "name": {
+          "type": "string",
+          "description": "User's display name."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "avatarColor": {
+          "type": "string",
+          "description": "The hex color code for the user's avatar fallback."
+        }
+      },
+      "required": [
+        "id",
+        "roles",
+        "name",
+        "email",
+        "avatarColor"
+      ]
+    },
+    "Customer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Customer",
+      "type": "object",
+      "description": "Represents a customer receiving a delivery.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Customer entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Customer's name."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Customer's phone number."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "phone"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Access controlled via path-based rules. Only the user or an admin can read/write.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/tickets/{ticketId}",
+        "definition": {
+          "entityName": "Ticket",
+          "schema": {
+            "$ref": "#/backend/entities/Ticket"
+          },
+          "description": "Stores all tickets in a single root collection. Access is controlled by checking ownerId, driverId, or user role within security rules.",
+          "params": [
+            {
+              "name": "ticketId",
+              "description": "The unique identifier for the ticket."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/customers/{customerId}",
+        "definition": {
+          "entityName": "Customer",
+          "schema": {
+            "$ref": "#/backend/entities/Customer"
+          },
+          "description": "Stores customer information.  If collaboration is needed, consider adding a 'members' map and denormalizing.",
+          "params": [
+            {
+              "name": "customerId",
+              "description": "The unique identifier for the customer."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Indicates admin role membership. Existence implies admin rights.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the admin user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the DecoEntrega application, focusing on secure and efficient data management for tickets, users, and customers. The structure leverages a root-level 'tickets' collection to allow for easier querying by admins and vendors, while still using security rules to enforce data access based on ownership and roles.\n\n**Users Collection:** Stores user profiles. Access is primarily managed through path-based rules ( `/users/{userId}`), ensuring only the user or admins can access user-specific data.  Authentication relies on Firebase Auth, with user roles stored directly in the user document. Admins can be managed via a dedicated `/roles_admin/{userId}` collection, checked for existence only.\n\n**Tickets Collection:** All tickets are stored in a single root-level collection (`/tickets/{ticketId}`). This simplifies global queries (e.g., for dashboards or history pages for admins/vendors). Security is enforced by rules that check the `ownerId` or `driverId` fields within the ticket document against the authenticated user's ID.\n\n**Customers Collection:** Stores customer information.  Customers are global and not user-specific.  Tickets store a `customerId` referencing a customer.\n\n**QAPs (Queries and Permissions):**\n*   **Secure Lists:** Queries on the root `tickets` collection can be secured by using `where()` clauses that match the user's ID, which Firestore rules can then validate (e.g., `allow list: if request.query.where.driverId == request.auth.uid`). For admins/vendors, rules can allow broader access based on their role.\n*   **Authorization Independence:**  Denormalizing data like `ownerId` and `driverId` into the ticket document is now even more critical as it's the primary mechanism for authorization checks.\n*   **Data Integrity:**  The structure supports enforcing invariants such as ownership (via `ownerId`), timestamps (created/updated), and denormalized data consistency."
+  }
+}

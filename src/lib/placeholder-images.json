@@ -1,0 +1,22 @@
+{
+  "placeholderImages": [
+    {
+      "id": "user1",
+      "description": "Admin User Avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjYzOTEyMDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "user2",
+      "description": "Driver User Avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1590086782792-42dd2350140d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjYzOTEyMDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "proofOfDelivery",
+      "description": "Placeholder for proof of delivery",
+      "imageUrl": "https://images.unsplash.com/photo-1626253274763-bdabe2f097c5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cGFja2FnZSUyMGJveHxlbnwwfHx8fDE3NjYzNTI4MTJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "package box"
+    }
+  ]
+}
