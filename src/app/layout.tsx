@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: 'DecoEntrega',
   description: 'Efficient Delivery Management',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
