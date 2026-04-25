@@ -40,7 +40,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
-import { Ticket, TicketStatuses, User } from '@/lib/types';
+import { Ticket, TicketStatuses, ProjectStatuses, User } from '@/lib/types';
 import { useAppContext } from '@/contexts/app-context';
 import { ListFilter, Calendar as CalendarIcon, X, Download, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
@@ -56,6 +56,10 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   onFilteredRowsChange: (count: number) => void;
+  entityName?: 'tiquetes' | 'instalaciones';
+  showMetrics?: boolean;
+  showStatusFilter?: boolean;
+  showOwnerFilter?: boolean;
 }
 
 
@@ -144,7 +148,11 @@ const CustomDateSelector: React.FC<CustomDateSelectorProps> = ({ label, dateValu
 export function DataTable<TData extends RowData, TValue>({
   columns,
   data,
-  onFilteredRowsChange
+  onFilteredRowsChange,
+  entityName = 'tiquetes',
+  showMetrics = true,
+  showStatusFilter = true,
+  showOwnerFilter = true,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -185,6 +193,8 @@ export function DataTable<TData extends RowData, TValue>({
     onFilteredRowsChange(table.getFilteredRowModel().rows.length);
   }, [table.getFilteredRowModel().rows, onFilteredRowsChange]);
 
+  const dateColumn = table.getAllColumns().find(c => c.id === 'updatedAt' || c.id === 'createdAt');
+
   const handleApplyCustomRange = () => {
     const {day: fromDay, month: fromMonth, year: fromYear} = fromDate;
     const {day: toDay, month: toMonth, year: toYear} = toDate;
@@ -192,7 +202,7 @@ export function DataTable<TData extends RowData, TValue>({
     if(fromDay && fromMonth && fromYear && toDay && toMonth && toYear) {
       const from = startOfDay(new Date(parseInt(fromYear), parseInt(fromMonth), parseInt(fromDay)));
       const to = endOfDay(new Date(parseInt(toYear), parseInt(toMonth), parseInt(toDay)));
-       table.getColumn('updatedAt')?.setFilterValue({ from, to });
+       dateColumn?.setFilterValue({ from, to });
     }
   }
 
@@ -225,21 +235,24 @@ export function DataTable<TData extends RowData, TValue>({
                 to = undefined;
         }
         if (from && to) {
-            table.getColumn('updatedAt')?.setFilterValue({ 
+            dateColumn?.setFilterValue({ 
                 from: startOfDay(from), 
                 to: endOfDay(to)
             });
         } else {
-             table.getColumn('updatedAt')?.setFilterValue(undefined);
+             dateColumn?.setFilterValue(undefined);
         }
     } else {
         // Clear previous filter when switching to custom, let user apply it.
-        table.getColumn('updatedAt')?.setFilterValue(undefined);
+        dateColumn?.setFilterValue(undefined);
     }
   }
 
-  const statusFilter = table.getColumn('status')?.getFilterValue() as string[] | undefined;
-  const ownerFilter = table.getColumn('ownerId')?.getFilterValue() as string[] | undefined;
+  const statusColumn = table.getAllColumns().find(c => c.id === 'status');
+  const ownerColumn = table.getAllColumns().find(c => c.id === 'ownerId');
+
+  const statusFilter = statusColumn?.getFilterValue() as string[] | undefined;
+  const ownerFilter = ownerColumn?.getFilterValue() as string[] | undefined;
 
   const clearFilters = () => {
     setColumnFilters([]);
@@ -247,30 +260,36 @@ export function DataTable<TData extends RowData, TValue>({
     setSelectedPreset('');
     setFromDate({ day: '', month: '', year: '' });
     setToDate({ day: '', month: '', year: '' });
-    table.getColumn('updatedAt')?.setFilterValue(undefined);
+    dateColumn?.setFilterValue(undefined);
   }
   
   const handleDownloadCSV = () => {
     const filteredRows = table.getFilteredRowModel().rows;
     if (!filteredRows.length || !settingsConfig) return;
 
-    const exportColumns = settingsConfig.csvExportColumns;
+    const exportColumns = entityName === 'instalaciones' 
+        ? settingsConfig.projectCsvExportColumns 
+        : settingsConfig.csvExportColumns;
+
     if (!exportColumns || exportColumns.length === 0) return;
     
     const headers = exportColumns.map(c => c.label);
 
     const csvRows = filteredRows.map((row: Row<TData>) => {
-        const ticket = row.original as Ticket;
+        const item = row.original as any;
         
         return exportColumns.map(col => {
             let value: any;
 
-            if (col.id === 'ownerName') {
-                value = users.find(u => u.id === ticket.ownerId)?.name || '';
+            if (col.id === 'ownerName' || col.id === 'ownerId') {
+                value = users.find(u => u.id === item.ownerId)?.name || item.ownerId || '';
             } else if (col.id === 'driverName' || col.id === 'driverId') {
-                value = users.find(u => u.id === ticket.driverId)?.name || ticket.driverId || '';
+                value = users.find(u => u.id === item.driverId)?.name || item.driverId || '';
+            } else if (col.id === 'installerIds') {
+                const installers = item.installerIds as string[] | undefined;
+                value = installers?.map(id => users.find(u => u.id === id)?.name || id).join(' | ') || '';
             } else {
-                value = ticket[col.id as keyof Ticket];
+                value = item[col.id as keyof typeof item];
             }
             
             if (value instanceof Timestamp) {
@@ -293,7 +312,7 @@ export function DataTable<TData extends RowData, TValue>({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', 'historial_tickets.csv');
+    link.setAttribute('download', `historial_${entityName}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -312,7 +331,7 @@ export function DataTable<TData extends RowData, TValue>({
         case 'this_month': return "Este mes";
         case 'this_year': return "Este año";
         case 'custom':
-            const filterValue = table.getColumn('updatedAt')?.getFilterValue() as { from: Date, to: Date } | undefined;
+            const filterValue = dateColumn?.getFilterValue() as { from: Date, to: Date } | undefined;
             if (filterValue && filterValue.from && filterValue.to) {
                 return `${format(filterValue.from, "dd/MM/yy")} - ${format(filterValue.to, "dd/MM/yy")}`;
             }
@@ -336,7 +355,7 @@ export function DataTable<TData extends RowData, TValue>({
     <TooltipProvider>
     <div className="space-y-6">
       {/* Metrics Dashboard */}
-      <HistoryMetrics tickets={filteredTickets} users={users} />
+      {showMetrics && <HistoryMetrics tickets={filteredTickets} users={users} />}
 
       {/* Table Area */}
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -378,68 +397,75 @@ export function DataTable<TData extends RowData, TValue>({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className='relative'>
-                <ListFilter className="mr-2 h-4 w-4" /> Estatus
-                {statusFilter && statusFilter.length > 0 && <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">{statusFilter.length}</span>}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Filtrar por estatus</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {TicketStatuses.map((status) => {
-                  const isChecked = statusFilter?.includes(status) ?? false;
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={status}
-                    className="capitalize"
-                    checked={isChecked}
-                    onCheckedChange={(value) => {
-                      const current = statusFilter || [];
-                      const newFilter = value ? [...current, status] : current.filter(s => s !== status);
-                      table.getColumn('status')?.setFilterValue(newFilter.length ? newFilter : undefined);
-                    }}
-                    onSelect={(e) => e.preventDefault()}
-                  >
-                    {status}
-                  </DropdownMenuCheckboxItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
+          {showStatusFilter && (
             <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className='relative'>
-                <ListFilter className="mr-2 h-4 w-4" /> Vendedor
-                {ownerFilter && ownerFilter.length > 0 && <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">{ownerFilter.length}</span>}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Filtrar por vendedor</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {vendors.map((vendor) => {
-                const isChecked = ownerFilter?.includes(vendor.id) ?? false;
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={vendor.id}
-                    className="capitalize"
-                    checked={isChecked}
-                    onCheckedChange={(value) => {
-                      const current = ownerFilter || [];
-                      const newFilter = value ? [...current, vendor.id] : current.filter(id => id !== vendor.id);
-                      table.getColumn('ownerId')?.setFilterValue(newFilter.length ? newFilter : undefined);
-                    }}
-                    onSelect={(e) => e.preventDefault()}
-                  >
-                    {vendor.name}
-                  </DropdownMenuCheckboxItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className='relative'>
+                  <ListFilter className="mr-2 h-4 w-4" /> Estatus
+                  {statusFilter && statusFilter.length > 0 && <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">{statusFilter.length}</span>}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Filtrar por estatus</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {(() => {
+                  const availableStatuses = entityName === 'instalaciones' ? ProjectStatuses : TicketStatuses;
+                  return (availableStatuses as string[]).map((status) => {
+                    const isChecked = statusFilter?.includes(status) ?? false;
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={status}
+                        className="capitalize"
+                        checked={isChecked}
+                        onCheckedChange={(value) => {
+                          const current = statusFilter || [];
+                          const newFilter = value ? [...current, status] : current.filter(s => s !== status);
+                          statusColumn?.setFilterValue(newFilter.length ? newFilter : undefined);
+                        }}
+                        onSelect={(e) => e.preventDefault()}
+                      >
+                        {status}
+                      </DropdownMenuCheckboxItem>
+                    );
+                  });
+                })()}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {showOwnerFilter && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className='relative'>
+                  <ListFilter className="mr-2 h-4 w-4" /> Vendedor
+                  {ownerFilter && ownerFilter.length > 0 && <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">{ownerFilter.length}</span>}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Filtrar por vendedor</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {vendors.map((vendor) => {
+                  const isChecked = ownerFilter?.includes(vendor.id) ?? false;
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={vendor.id}
+                      className="capitalize"
+                      checked={isChecked}
+                      onCheckedChange={(value) => {
+                        const current = ownerFilter || [];
+                        const newFilter = value ? [...current, vendor.id] : current.filter(id => id !== vendor.id);
+                        ownerColumn?.setFilterValue(newFilter.length ? newFilter : undefined);
+                      }}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      {vendor.name}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          
           {hasActiveFilters && <Button variant="ghost" size="sm" onClick={clearFilters}><X className="mr-2 h-4 w-4" /> Limpiar</Button>}
           
           <div className="flex-grow" />
@@ -531,8 +557,8 @@ export function DataTable<TData extends RowData, TValue>({
        <div className="flex items-center justify-between p-4">
         <div className="text-sm text-muted-foreground">
           {totalFilteredRows > 0
-            ? `Mostrando ${startRow} - ${endRow} de ${totalFilteredRows} tiquetes.`
-            : 'No se encontraron tiquetes.'}
+            ? `Mostrando ${startRow} - ${endRow} de ${totalFilteredRows} resultados.`
+            : 'No se encontraron resultados.'}
         </div>
         <div className="flex items-center space-x-2">
             <Button

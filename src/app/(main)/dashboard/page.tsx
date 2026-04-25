@@ -59,10 +59,10 @@ export default function DashboardPage() {
   const { users } = useAppContext();
   const [selectedSellerIds, setSelectedSellerIds] = useState<string[]>([]);
 
-  const sellers = useMemo(() => {
+  const filterableUsers = useMemo(() => {
     return users.filter((u: UserType) => {
         const r = u.roles || (u.role ? [u.role] : []);
-        return r.includes('admin') || r.includes('vendedor');
+        return r.includes('admin') || r.includes('vendedor') || r.includes('chofer');
     });
   }, [users]);
   
@@ -78,13 +78,13 @@ export default function DashboardPage() {
   };
   
   const getSelectedSellersText = () => {
-    if (selectedSellerIds.length === 0) return "Filtrar por vendedor";
-    if (selectedSellerIds.length === sellers.length) return "Todos los Vendedores";
+    if (selectedSellerIds.length === 0) return "Filtrar por Personal";
+    if (selectedSellerIds.length === filterableUsers.length) return "Todo el Personal";
     if (selectedSellerIds.length === 1) {
-        const seller = sellers.find(s => s.id === selectedSellerIds[0]);
-        return seller?.name || "1 Vendedor";
+        const user = filterableUsers.find(u => u.id === selectedSellerIds[0]);
+        return user?.name || "1 Usuario";
     }
-    return `${selectedSellerIds.length} Vendedores`;
+    return `${selectedSellerIds.length} Usuarios`;
   }
 
   return (
@@ -108,24 +108,24 @@ export default function DashboardPage() {
                     </TooltipContent>
                 </Tooltip>
                 <DropdownMenuContent className="w-[200px]">
-                    <DropdownMenuLabel>Filtrar por vendedor</DropdownMenuLabel>
+                    <DropdownMenuLabel>Filtrar por Personal</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                      <DropdownMenuCheckboxItem
-                        checked={selectedSellerIds.length === sellers.length || selectedSellerIds.length === 0}
-                        onCheckedChange={(checked) => setSelectedSellerIds(checked ? sellers.map(s => s.id) : [])}
+                        checked={selectedSellerIds.length === filterableUsers.length && filterableUsers.length > 0}
+                        onCheckedChange={(checked) => setSelectedSellerIds(checked ? filterableUsers.map(u => u.id) : [])}
                         onSelect={(e) => e.preventDefault()}
                     >
-                        Todos los Vendedores
+                        Todo el Personal
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuSeparator />
-                    {sellers.map(seller => (
+                    {filterableUsers.map(user => (
                         <DropdownMenuCheckboxItem
-                            key={seller.id}
-                            checked={selectedSellerIds.includes(seller.id)}
-                            onCheckedChange={() => handleSellerFilterChange(seller.id)}
+                            key={user.id}
+                            checked={selectedSellerIds.includes(user.id)}
+                            onCheckedChange={() => handleSellerFilterChange(user.id)}
                             onSelect={(e) => e.preventDefault()}
                         >
-                            {seller.name}
+                            {user.name}
                         </DropdownMenuCheckboxItem>
                     ))}
                 </DropdownMenuContent>

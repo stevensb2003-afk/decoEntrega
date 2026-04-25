@@ -459,7 +459,10 @@ export const KanbanBoard = ({ selectedSellerIds }: { selectedSellerIds: string[]
         return baseTickets;
     }
 
-    return baseTickets.filter(ticket => selectedSellerIds.includes(ticket.ownerId));
+    return baseTickets.filter(ticket => 
+        selectedSellerIds.includes(ticket.ownerId) || 
+        (ticket.driverId && selectedSellerIds.includes(ticket.driverId))
+    );
   }, [tickets, selectedSellerIds]);
 
   return (

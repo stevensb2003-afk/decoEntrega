@@ -17,14 +17,18 @@ import {
   subWeeks,
   addDays,
   isSunday,
+  parseISO,
+  isWithinInterval,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/contexts/app-context';
-import { Ticket } from '@/lib/types';
+import { useAuth } from '@/hooks/use-auth';
+import { Ticket, Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { DayDeliveriesModal } from './day-deliveries-modal';
 import { Button } from '../ui/button';
-import { ChevronLeft, ChevronRight, Slash, AlertTriangle, MoreVertical, Phone, MapPin, Truck, User as UserIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Slash, AlertTriangle, MoreVertical, Phone, MapPin, Truck, User as UserIcon, Package, Wrench } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,17 +40,49 @@ import { FieldValue } from 'firebase/firestore';
 import { useSettingsContext } from '@/contexts/settings-context';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+type CalendarFilter = 'all' | 'deliveries' | 'projects';
+
 
 type CalendarView = 'month' | 'two-weeks' | 'week';
 
 export function FullCalendar() {
-  const { ticketsByDay, blockedDates, addBlockedDate, removeBlockedDate, updateTicket, users } = useAppContext();
+  const { ticketsByDay, blockedDates, addBlockedDate, removeBlockedDate, updateTicket, users, projects } = useAppContext();
   const { config } = useSettingsContext();
+  const { currentUser } = useAuth();
+  const router = useRouter();
   const [currentDate, setCurrentDate] = React.useState(new Date());
   const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
   const [isModalOpen, setModalOpen] = React.useState(false);
   const [view, setView] = React.useState<CalendarView>('month');
   const { toast } = useToast();
+
+  const userRoles = currentUser?.roles ?? (currentUser?.role ? [currentUser.role] : []);
+  const isInstallerOnly = userRoles.includes('instalador') && !userRoles.some((r) => ['admin', 'vendedor', 'chofer', 'bodeguero'].includes(r));
+
+  // Installers can only see projects — force the filter
+  const [filter, setFilter] = React.useState<CalendarFilter>(isInstallerOnly ? 'projects' : 'all');
+
+  // Build a map: dateKey -> Project[]
+  const projectsByDay = React.useMemo(() => {
+    const map: Record<string, Project[]> = {};
+    projects.forEach((project) => {
+      try {
+        const start = typeof project.startDate === 'string' ? parseISO(project.startDate) : new Date((project.startDate as any).seconds * 1000);
+        const end = project.isOneDay
+          ? start
+          : (project.endDate
+            ? (typeof project.endDate === 'string' ? parseISO(project.endDate) : new Date((project.endDate as any).seconds * 1000))
+            : start);
+        const range = eachDayOfInterval({ start, end });
+        range.forEach((day) => {
+          const key = format(day, 'yyyy-MM-dd');
+          if (!map[key]) map[key] = [];
+          map[key].push(project);
+        });
+      } catch { /* skip malformed dates */ }
+    });
+    return map;
+  }, [projects]);
 
   const maxDeliveries = config?.maxDeliveriesPerDay || 5;
 
@@ -173,7 +209,21 @@ export function FullCalendar() {
             <h2 className="text-xl font-bold capitalize">
               {headerTitle}
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Filter toggle — hidden for pure installers */}
+              {!isInstallerOnly && (
+                <div className="flex items-center gap-1 border rounded-md p-1">
+                  <Button size="sm" variant={filter === 'deliveries' ? 'secondary' : 'ghost'} onClick={() => setFilter('deliveries')}>
+                    <Package className="h-3.5 w-3.5 mr-1" />Entregas
+                  </Button>
+                  <Button size="sm" variant={filter === 'projects' ? 'secondary' : 'ghost'} onClick={() => setFilter('projects')}>
+                    <Wrench className="h-3.5 w-3.5 mr-1" />Proyectos
+                  </Button>
+                  <Button size="sm" variant={filter === 'all' ? 'secondary' : 'ghost'} onClick={() => setFilter('all')}>
+                    Ambos
+                  </Button>
+                </div>
+              )}
               <div className="flex items-center gap-1 border rounded-md p-1">
                   <Button size="sm" variant={view === 'month' ? 'secondary' : 'ghost'} onClick={() => setView('month')}>Mes</Button>
                   <Button size="sm" variant={view === 'two-weeks' ? 'secondary' : 'ghost'} onClick={() => setView('two-weeks')}>2 Semanas</Button>
@@ -204,6 +254,7 @@ export function FullCalendar() {
             {days.map((day) => {
               const dateKey = format(day, 'yyyy-MM-dd');
               const ticketsForDay = ticketsByDay[dateKey] || [];
+              const projectsForDay = projectsByDay[dateKey] || [];
               const manualBlock = blockedDates.find(d => d.id === dateKey);
 
               let isEffectivelyBlocked = false;
@@ -213,8 +264,11 @@ export function FullCalendar() {
                 isEffectivelyBlocked = true;
               }
 
-              const canBlockOrUnblock = ticketsForDay.length === 0;
-              const isOverbooked = ticketsForDay.length > maxDeliveries;
+              const showTickets = filter === 'all' || filter === 'deliveries';
+              const showProjects = filter === 'all' || filter === 'projects';
+              const visibleTickets = showTickets ? ticketsForDay : [];
+              const canBlockOrUnblock = visibleTickets.length === 0;
+              const isOverbooked = visibleTickets.length > maxDeliveries;
 
               return (
                 <div
@@ -244,14 +298,15 @@ export function FullCalendar() {
                               className={cn(
                                   'font-semibold ml-auto',
                                   isSameDay(day, new Date()) && 'bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center',
-                                  ticketsForDay.length > 0 && 'cursor-pointer'
+                                  visibleTickets.length > 0 && 'cursor-pointer'
                               )}
                           >
                               {format(day, 'd')}
                           </span>
                       </div>
                     <div className="flex-1 mt-1 space-y-1 relative" onDragOver={handleDragOver}>
-                        {ticketsForDay.map(ticket => {
+                        {/* ── Delivery tickets ─────────────────── */}
+                        {showTickets && visibleTickets.map(ticket => {
                           const isDelivered = ticket.status === 'Entregado';
                           const isCancelled = ticket.status === 'Cancelado';
                           const isDraggable = !isDelivered && !isCancelled;
@@ -302,6 +357,39 @@ export function FullCalendar() {
                             </Tooltip>
                           )
                         })}
+
+                        {/* ── Project badges ───────────────────── */}
+                        {showProjects && projectsForDay.map(project => (
+                          <Tooltip key={project.id}>
+                            <TooltipTrigger asChild>
+                              <div
+                                className="text-xs rounded px-2 py-1 truncate bg-teal-600/90 text-white cursor-pointer hover:bg-teal-700 transition-colors"
+                                onClick={(e) => { e.stopPropagation(); router.push(`/projects/${project.id}`); }}
+                              >
+                                <Wrench className="inline h-3 w-3 mr-1 opacity-80" />
+                                {project.projectId} - {project.name}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="w-64" side="top" align="center">
+                              <div className="font-bold text-base mb-1">{project.projectId}</div>
+                              <div className="text-sm font-medium mb-2">{project.name}</div>
+                              <div className="space-y-1.5 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <UserIcon className="w-4 h-4 text-muted-foreground" />
+                                  <span>{project.customerName}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Phone className="w-4 h-4 text-muted-foreground" />
+                                  <span>{project.customerPhone}</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                  <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                                  <span className="flex-1 line-clamp-2">{project.locationDetails}</span>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
                     </div>
                     <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <DropdownMenu>

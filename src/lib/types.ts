@@ -4,8 +4,8 @@
 
 import { FieldValue } from "firebase/firestore";
 
-export type UserRole = 'admin' | 'vendedor' | 'chofer' | 'bodeguero';
-export const UserRoles: UserRole[] = ['admin', 'vendedor', 'chofer', 'bodeguero'];
+export type UserRole = 'admin' | 'vendedor' | 'chofer' | 'bodeguero' | 'instalador';
+export const UserRoles: UserRole[] = ['admin', 'vendedor', 'chofer', 'bodeguero', 'instalador'];
 
 export type User = {
   id: string; // Corresponds to Firebase Auth UID
@@ -61,9 +61,59 @@ export type BlockedDate = {
   reason: string;
 }
 
+export type ProjectStatus = 'Pendiente' | 'En Progreso' | 'Completado' | 'Cancelado';
+
+export const ProjectStatuses: ProjectStatus[] = ['Pendiente', 'En Progreso', 'Completado', 'Cancelado'];
+
+export type ProjectTask = {
+  id: string; // Unique ID for the task
+  title: string;
+  isCompleted: boolean;
+  createdAt: FieldValue | string;
+};
+
+export type ProjectMaterial = {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  description?: string;
+  createdAt: FieldValue | string;
+};
+
+export type ProjectNote = {
+  id: string;
+  content: string;
+  createdAt: FieldValue | string;
+  createdBy: string; // User ID
+  createdByName?: string;
+};
+
+export type Project = {
+  id: string; // Firestore document ID
+  projectId: string; // Sequential human-readable ID (e.g., INST-0001)
+  name: string;
+  customerName: string;
+  customerPhone: string;
+  locationDetails: string;
+  status: ProjectStatus;
+  startDate: FieldValue | string;
+  endDate?: FieldValue | string;
+  isOneDay: boolean;
+  ownerId: string; // Vendedor who created it
+  installerIds: string[]; // Assigned installers
+  tasks: ProjectTask[];
+  materials: ProjectMaterial[];
+  notes: ProjectNote[];
+  createdAt: FieldValue | string;
+  updatedAt: FieldValue | string;
+  [key: string]: any;
+};
+
 export const navLinksConfig = {
     '/dashboard': { label: 'Mi Día', allowedRoles: ['admin', 'vendedor', 'bodeguero'] },
     '/driver': { label: 'Mi Ruta', allowedRoles: ['admin', 'chofer'] },
+    '/projects': { label: 'Proyectos', allowedRoles: ['admin', 'vendedor', 'instalador'] },
     '/calendar': { label: 'Calendario', allowedRoles: ['admin', 'vendedor'] },
     '/history': { label: 'Historial', allowedRoles: ['admin', 'vendedor'] },
     '/admin/users': { label: 'Usuarios', allowedRoles: ['admin'] },
@@ -94,10 +144,17 @@ export type CSVExportColumn = {
     group: 'general' | 'ticketForm' | 'validationForm';
 }
 
+export type ProjectCSVExportColumn = {
+    id: keyof Project | 'ownerName' | 'installerNames';
+    label: string;
+    group: 'general' | 'projectForm';
+}
+
 export interface AppConfig {
   id: 'main'; // Singleton document ID
   maxDeliveriesPerDay: number;
   ticketForm: FormQuestion[];
   validationForm: FormQuestion[];
   csvExportColumns: Omit<CSVExportColumn, 'enabled'>[];
+  projectCsvExportColumns?: Omit<ProjectCSVExportColumn, 'enabled'>[];
 }

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, ReactNode, useEffect, useState, useMemo } from 'react';
 import { useCollection, useFirestore, updateDocumentNonBlocking, useMemoFirebase } from '@/firebase';
-import { AppConfig, FormQuestion, CSVExportColumn, Ticket, NavPath, UserRole, navLinksConfig } from '@/lib/types';
+import { AppConfig, FormQuestion, CSVExportColumn, ProjectCSVExportColumn, Ticket, NavPath, UserRole, navLinksConfig } from '@/lib/types';
 import { collection, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
@@ -26,6 +26,20 @@ const baseTicketColumns: Omit<CSVExportColumn, 'enabled'>[] = [
     { id: 'updatedAt', label: 'Última Actualización', group: 'general' },
 ];
 
+const baseProjectColumns: Omit<ProjectCSVExportColumn, 'enabled'>[] = [
+    { id: 'projectId', label: 'ID Proyecto', group: 'general' },
+    { id: 'name', label: 'Nombre Proyecto', group: 'general' },
+    { id: 'customerName', label: 'Cliente', group: 'general' },
+    { id: 'customerPhone', label: 'Teléfono', group: 'general' },
+    { id: 'status', label: 'Estatus', group: 'general' },
+    { id: 'ownerName', label: 'Vendedor (Creador)', group: 'general' },
+    { id: 'installerNames', label: 'Instaladores', group: 'general' },
+    { id: 'startDate', label: 'Fecha de Inicio', group: 'general' },
+    { id: 'endDate', label: 'Fecha de Fin', group: 'general' },
+    { id: 'createdAt', label: 'Fecha de Creación', group: 'general' },
+    { id: 'updatedAt', label: 'Última Actualización', group: 'general' },
+];
+
 const defaultConfig: AppConfig = {
   id: 'main',
   maxDeliveriesPerDay: 5,
@@ -43,6 +57,7 @@ const defaultConfig: AppConfig = {
     { fieldId: 'validation_signature_static', id: 'proofOfDeliveryUrl', label: 'Firma del Cliente', type: 'signature', visible: true, required: true },
   ],
   csvExportColumns: [], // Will be dynamically generated
+  projectCsvExportColumns: [], // Will be dynamically generated
 };
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
@@ -102,6 +117,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       }).filter(Boolean) as Omit<CSVExportColumn, 'enabled'>[];
     }
     
+    // Auto-sync project exportable columns
+    if (existingConfig && existingConfig.projectCsvExportColumns && existingConfig.projectCsvExportColumns.length > 0) {
+      const validSavedProjectColumns = existingConfig.projectCsvExportColumns.filter(savedCol => 
+        baseProjectColumns.some(possibleCol => possibleCol.id === savedCol.id)
+      ).map(savedCol => {
+        const possibleCol = baseProjectColumns.find(p => p.id === savedCol.id)!;
+        return { ...possibleCol, id: savedCol.id, label: savedCol.label, group: savedCol.group };
+      });
+      newConfig.projectCsvExportColumns = validSavedProjectColumns;
+    } else if (!existingConfig?.projectCsvExportColumns || existingConfig.projectCsvExportColumns.length === 0) {
+      newConfig.projectCsvExportColumns = [...baseProjectColumns];
+    }
+    
     newConfig.ticketForm = newConfig.ticketForm.map((q: FormQuestion, i: number) => ({...q, fieldId: q.fieldId || `${q.id}_${Date.now()}_${i}`}));
     newConfig.validationForm = newConfig.validationForm.map((q: FormQuestion, i: number) => ({...q, fieldId: q.fieldId || `${q.id}_${Date.now()}_${i}`}));
 
@@ -136,12 +164,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const configRef = doc(firestore, 'settings', 'main');
     
     const columnsToSave = newConfig.csvExportColumns.map(({ id, label, group }) => ({ id, label, group }));
+    const projectColumnsToSave = newConfig.projectCsvExportColumns?.map(({ id, label, group }) => ({ id, label, group })) || [];
 
     const processedConfig: AppConfig = {
       ...newConfig,
       ticketForm: newConfig.ticketForm.map(processQuestionOptions),
       validationForm: newConfig.validationForm.map(processQuestionOptions),
       csvExportColumns: columnsToSave,
+      projectCsvExportColumns: projectColumnsToSave,
     };
 
     updateDocumentNonBlocking(configRef, processedConfig);

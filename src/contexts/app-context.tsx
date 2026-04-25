@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
-import { User, Ticket, TicketStatus, Customer, BlockedDate } from '@/lib/types';
+import { User, Ticket, TicketStatus, Customer, BlockedDate, Project, ProjectStatus } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   useCollection,
@@ -37,6 +37,14 @@ interface AppContextType {
   addBlockedDate: (date: string, reason: string) => void;
   removeBlockedDate: (date: string) => void;
   moveTicketToPosition: (ticketId: string, newPosition: number) => void;
+
+  // Projects
+  projects: Project[];
+  isProjectsLoading: boolean;
+  addProject: (newProjectData: Omit<Project, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'ownerId' | 'status'>, projectId: string) => void;
+  updateProject: (projectId: string, updatedData: Partial<Project>) => void;
+  deleteProject: (projectId: string) => void;
+  getProjectById: (projectId: string) => Project | undefined;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -96,6 +104,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const { data: ticketsData, isLoading: isTicketsLoading } = useCollection<Ticket>(ticketsQuery);
   const tickets = ticketsData || [];
+
+  // Projects Query
+  const projectsQuery = useMemoFirebase(() => {
+    if (!firestore || !currentUser) return null;
+    const projectsCollectionRef = collection(firestore, 'projects');
+    const userRoles = currentUser.roles || (currentUser.role ? [currentUser.role] : []);
+    
+    // Check if user is ONLY an instalador
+    const isOnlyInstaller = userRoles.includes('instalador') && userRoles.length === 1;
+    
+    if (isOnlyInstaller) {
+        return query(projectsCollectionRef, where('installerIds', 'array-contains', currentUser.id));
+    }
+    
+    return projectsCollectionRef; // Admin and Vendedor can see all projects
+  }, [firestore, currentUser]);
+
+  const { data: projectsData, isLoading: isProjectsLoading } = useCollection<Project>(projectsQuery);
+  const projects = projectsData || [];
 
   const ticketsByDay = useMemo(() => {
     const grouped: { [key: string]: Ticket[] } = {};
@@ -264,6 +291,42 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: 'Prioridad Actualizada', description: `Tiquete ${ticketToMove.ticketId} movido a la posición ${newPosition}.` });
   };
 
+  // --- Project CRUD ---
+  const addProject = (newProjectData: Omit<Project, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'ownerId' | 'status'>, projectId: string) => {
+    if (!user || !firestore) return;
+    const projectsCollectionRef = collection(firestore, 'projects');
+
+    const newProject = {
+      ...newProjectData,
+      projectId: projectId,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      ownerId: user.uid,
+      status: 'Pendiente' as ProjectStatus,
+    };
+    
+    addDocumentNonBlocking(projectsCollectionRef, newProject);
+    toast({ title: "Proyecto Creadado", description: `Un nuevo proyecto ${projectId} ha sido creado exitosamente.` });
+  };
+
+  const updateProject = (projectId: string, updatedData: Partial<Project>) => {
+    if (!firestore) return;
+    const projectRef = doc(firestore, 'projects', projectId);
+    updateDocumentNonBlocking(projectRef, { ...updatedData, updatedAt: serverTimestamp() });
+    toast({ title: 'Proyecto Actualizado', description: 'El proyecto ha sido actualizado exitosamente.' });
+  };
+
+  const deleteProject = (projectId: string) => {
+    if (!firestore) return;
+    const projectRef = doc(firestore, 'projects', projectId);
+    deleteDocumentNonBlocking(projectRef);
+    toast({ variant: 'destructive', title: "Proyecto Eliminado", description: "El proyecto ha sido eliminado permanentemente."});
+  };
+
+  const getProjectById = (projectId: string): Project | undefined => {
+    return projects?.find(p => p.id === projectId);
+  };
+
   const value = {
     users,
     tickets,
@@ -283,6 +346,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     addBlockedDate,
     removeBlockedDate,
     moveTicketToPosition,
+    
+    // Projects
+    projects,
+    isProjectsLoading,
+    addProject,
+    updateProject,
+    deleteProject,
+    getProjectById,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

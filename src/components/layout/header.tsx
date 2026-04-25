@@ -52,6 +52,9 @@ export function AppHeader() {
       if (userRoles.includes('chofer')) {
           return '/driver';
       }
+      if (userRoles.includes('instalador')) {
+          return '/projects';
+      }
       return '/';
   }, [currentUser]);
 

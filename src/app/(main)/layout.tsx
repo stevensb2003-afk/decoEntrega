@@ -78,6 +78,8 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode; }) {
               destination = '/dashboard';
           } else if (userRoles.includes('chofer')) {
               destination = '/driver';
+          } else if (userRoles.includes('instalador')) {
+              destination = '/projects';
           }
           
           router.replace(destination);

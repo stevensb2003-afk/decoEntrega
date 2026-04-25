@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, Trash2, PlusCircle, ArrowUp, ArrowDown, HelpCircle, ChevronsRight, ChevronsLeft, ChevronRight, ChevronLeft, SlidersHorizontal, GripVertical } from 'lucide-react';
+import { Loader2, Save, Trash2, PlusCircle, ArrowUp, ArrowDown, HelpCircle, ChevronsRight, ChevronsLeft, ChevronRight, ChevronLeft, SlidersHorizontal, GripVertical, Plus, X } from 'lucide-react';
 import { FormQuestion, QuestionType, AppConfig, CSVExportColumn, Ticket, UserRole, UserRoles, NavPath, navLinksConfig } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { useEffect, useState, memo, useMemo, useRef } from 'react';
@@ -23,6 +23,24 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 
 type FormSection = 'ticketForm' | 'validationForm';
@@ -210,81 +228,71 @@ const QuestionEditor = ({ section, localConfig, setLocalConfig }: { section: For
     )
 };
 
-const ColumnList = memo(({ title, items, checkedItems, onToggle, showOrder = false, onReorder }: { title: string, items: {id: string, label: string}[], checkedItems: Set<string>, onToggle: (id: string) => void, showOrder?: boolean, onReorder?: (dragIndex: number, hoverIndex: number) => void }) => {
-    const dragItem = useRef<number | null>(null);
-    const dragOverItem = useRef<number | null>(null);
-
-    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-        dragItem.current = index;
-    };
-
-    const handleDragEnter = (index: number) => {
-        dragOverItem.current = index;
-    };
-
-    const handleDrop = () => {
-        if (onReorder && dragItem.current !== null && dragOverItem.current !== null) {
-            onReorder(dragItem.current, dragOverItem.current);
-        }
-        dragItem.current = null;
-        dragOverItem.current = null;
-    };
-
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-    };
-
-    const handleDragEnd = () => {
-        dragItem.current = null;
-        dragOverItem.current = null;
-    };
-
+const AvailableColumnItem = memo(({ item, onAdd }: { item: {id: string, label: string}, onAdd: (item: any) => void }) => {
     return (
-        <div className="space-y-3 min-w-[250px]">
-            <h3 className="text-lg font-semibold">{title}</h3>
-            <div
-                className="border rounded-lg min-h-[300px] max-h-[50vh] overflow-y-auto p-2 space-y-1 bg-muted/20"
-                onDrop={showOrder ? handleDrop : undefined}
-                onDragOver={showOrder ? handleDragOver : undefined}
-                onDragEnd={handleDragEnd}
-            >
-                {items.length > 0 ? items.map((item, index) => (
-                    <div
-                        key={item.id}
-                        className="flex items-center gap-2 p-2 rounded-md bg-background border border-transparent has-[:checked]:bg-primary/10 has-[:checked]:border-primary/50"
-                        draggable={showOrder}
-                        onDragStart={showOrder ? (e) => handleDragStart(e, index) : undefined}
-                        onDragEnter={showOrder ? () => handleDragEnter(index) : undefined}
-                    >
-                        <Checkbox
-                            id={`col-${item.id}`}
-                            checked={checkedItems.has(item.id)}
-                            onCheckedChange={() => onToggle(item.id)}
-                        />
-                        <label htmlFor={`col-${item.id}`} className="flex-1 text-sm font-medium cursor-pointer">{item.label}</label>
-                        {showOrder && onReorder && (
-                            <div className="cursor-grab">
-                                <GripVertical className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                        )}
-                    </div>
-                )) : (
-                    <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 h-full">
-                        <p>No hay columnas aquí.</p>
-                    </div>
-                )}
-            </div>
+        <div className="flex items-center justify-between p-3 rounded-md bg-background border shadow-sm hover:border-primary/50 transition-colors group">
+            <span className="text-sm font-medium">{item.label}</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8 transition-opacity" onClick={() => onAdd(item)}>
+                <Plus className="h-4 w-4" />
+            </Button>
         </div>
     );
 });
-ColumnList.displayName = 'ColumnList';
+AvailableColumnItem.displayName = 'AvailableColumnItem';
 
-const CSVExportSettings = ({ localConfig, setLocalConfig }: { localConfig: AppConfig | null, setLocalConfig: React.Dispatch<React.SetStateAction<AppConfig | null>> }) => {
-    const [checkedAvailable, setCheckedAvailable] = useState<Set<string>>(new Set());
-    const [checkedSelected, setCheckedSelected] = useState<Set<string>>(new Set());
+const SortableItem = ({ id, label, onRemove }: { id: string, label: string, onRemove: (id: string) => void }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : 1,
+    };
+
+    return (
+        <div 
+            ref={setNodeRef} 
+            style={style} 
+            className={cn(
+                "flex items-center justify-between p-3 rounded-md bg-background border shadow-sm transition-colors group relative",
+                isDragging ? "border-primary shadow-md opacity-80" : "hover:border-primary/50"
+            )}
+        >
+            <div className="flex items-center gap-3">
+                <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1 -ml-1">
+                    <GripVertical className="h-5 w-5" />
+                </div>
+                <span className="text-sm font-medium">{label}</span>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive transition-opacity" onClick={() => onRemove(id)}>
+                <X className="h-4 w-4" />
+            </Button>
+        </div>
+    );
+};
+
+const CSVExportSettings = ({ localConfig, setLocalConfig, type = 'tickets' }: { localConfig: AppConfig | null, setLocalConfig: React.Dispatch<React.SetStateAction<AppConfig | null>>, type?: 'tickets' | 'projects' }) => {
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
 
     const allPossibleColumns: Omit<CSVExportColumn, 'enabled'>[] = useMemo(() => {
         if (!localConfig) return [];
+        
+        if (type === 'projects') {
+            return [
+                { id: 'id', label: 'ID Proyecto (Sistema)', group: 'general' },
+                { id: 'projectId', label: 'ID Proyecto', group: 'general' },
+                { id: 'clientName', label: 'Cliente', group: 'general' },
+                { id: 'status', label: 'Estatus', group: 'general' },
+                { id: 'ownerId', label: 'ID Vendedor', group: 'general' },
+                { id: 'installerIds', label: 'IDs Instaladores', group: 'general' },
+                { id: 'installationDate', label: 'Fecha Instalación', group: 'general' },
+                { id: 'createdAt', label: 'Fecha de Creación', group: 'general' },
+            ];
+        }
+
         const ticketFormColumns = localConfig.ticketForm.map(q => ({ id: q.id as keyof Ticket, label: q.label, group: 'ticketForm' as const }));
         const validationFormColumns = localConfig.validationForm.map(q => ({ id: q.id as keyof Ticket, label: q.label, group: 'validationForm' as const }));
         
@@ -303,106 +311,136 @@ const CSVExportSettings = ({ localConfig, setLocalConfig }: { localConfig: AppCo
         const uniqueValidationFormColumns = validationFormColumns.filter(c => !allIds.has(c.id));
 
         return [...baseTicketColumns, ...uniqueTicketFormColumns, ...uniqueValidationFormColumns];
-    }, [localConfig?.ticketForm, localConfig?.validationForm]);
+    }, [localConfig?.ticketForm, localConfig?.validationForm, type]);
 
 
     const { selected, available } = useMemo(() => {
         if (!localConfig) return { selected: [], available: [] };
-        const selectedIds = new Set(localConfig.csvExportColumns.map(c => c.id));
-        const selected = localConfig.csvExportColumns || [];
-        const available = allPossibleColumns.filter(p => !selectedIds.has(p.id));
-        return { selected, available };
-    }, [localConfig?.csvExportColumns, allPossibleColumns]);
-    
-    useEffect(() => {
-        setCheckedAvailable(new Set());
-        setCheckedSelected(new Set());
-    }, [selected.length, available.length])
+        
+        const currentSelected = type === 'projects' ? (localConfig.projectCsvExportColumns || []) : (localConfig.csvExportColumns || []);
+        const selectedIds = new Set(currentSelected.map(c => c.id));
+        const available = allPossibleColumns.filter(p => !selectedIds.has(p.id as string));
+        return { selected: currentSelected, available };
+    }, [localConfig?.csvExportColumns, localConfig?.projectCsvExportColumns, allPossibleColumns, type]);
 
-    const handleToggle = (id: string, list: 'available' | 'selected') => {
-        const set = list === 'available' ? setCheckedAvailable : setCheckedSelected;
-        set(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(id)) {
-                newSet.delete(id);
-            } else {
-                newSet.add(id);
-            }
-            return newSet;
-        });
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (active.id !== over?.id) {
+            setLocalConfig((prevConfig) => {
+                if (!prevConfig) return null;
+                
+                if (type === 'projects') {
+                    const items = prevConfig.projectCsvExportColumns || [];
+                    const oldIndex = items.findIndex(item => item.id === active.id);
+                    const newIndex = items.findIndex(item => item.id === over?.id);
+                    return { 
+                        ...prevConfig, 
+                        projectCsvExportColumns: arrayMove(items, oldIndex, newIndex) 
+                    };
+                } else {
+                    const items = prevConfig.csvExportColumns || [];
+                    const oldIndex = items.findIndex(item => item.id === active.id);
+                    const newIndex = items.findIndex(item => item.id === over?.id);
+                    return { 
+                        ...prevConfig, 
+                        csvExportColumns: arrayMove(items, oldIndex, newIndex) 
+                    };
+                }
+            });
+        }
     };
 
-    const handleMove = (direction: 'toSelected' | 'toAvailable') => {
+    const handleAdd = (item: any) => {
         setLocalConfig(prevConfig => {
             if (!prevConfig) return null;
-
-            if (direction === 'toSelected') {
-                const itemsToMove = available.filter(item => checkedAvailable.has(item.id as string));
-                const newSelected = [...prevConfig.csvExportColumns, ...itemsToMove];
-                return { ...prevConfig, csvExportColumns: newSelected };
+            if (type === 'projects') {
+                const items = prevConfig.projectCsvExportColumns || [];
+                return { ...prevConfig, projectCsvExportColumns: [...items, item] };
             } else {
-                const newSelected = prevConfig.csvExportColumns.filter(item => !checkedSelected.has(item.id as string));
-                return { ...prevConfig, csvExportColumns: newSelected };
+                const items = prevConfig.csvExportColumns || [];
+                return { ...prevConfig, csvExportColumns: [...items, item] };
             }
         });
     };
 
-    const handleMoveAll = (direction: 'toSelected' | 'toAvailable') => {
+    const handleRemove = (id: string) => {
         setLocalConfig(prevConfig => {
             if (!prevConfig) return null;
-            if (direction === 'toSelected') {
-                return { ...prevConfig, csvExportColumns: [...allPossibleColumns] };
+            if (type === 'projects') {
+                const items = prevConfig.projectCsvExportColumns || [];
+                return { ...prevConfig, projectCsvExportColumns: items.filter(item => item.id !== id) };
             } else {
-                return { ...prevConfig, csvExportColumns: [] };
+                const items = prevConfig.csvExportColumns || [];
+                return { ...prevConfig, csvExportColumns: items.filter(item => item.id !== id) };
             }
         });
-    }
+    };
 
-    const reorderSelectedColumns = (dragIndex: number, hoverIndex: number) => {
-        setLocalConfig(prev => {
-            if (!prev) return null;
-            const newConfig = JSON.parse(JSON.stringify(prev));
-            const items = newConfig.csvExportColumns;
-            const [draggedItem] = items.splice(dragIndex, 1);
-            items.splice(hoverIndex, 0, draggedItem);
-            return newConfig;
+    const handleAddAll = () => {
+        setLocalConfig(prevConfig => {
+            if (!prevConfig) return null;
+            const field = type === 'projects' ? 'projectCsvExportColumns' : 'csvExportColumns';
+            return { ...prevConfig, [field]: [...allPossibleColumns] };
         });
     };
-    
+
+    const handleRemoveAll = () => {
+        setLocalConfig(prevConfig => {
+            if (!prevConfig) return null;
+            const field = type === 'projects' ? 'projectCsvExportColumns' : 'csvExportColumns';
+            return { ...prevConfig, [field]: [] };
+        });
+    };
+
     if (!localConfig) return null;
-    
 
     return (
-        <ScrollArea className="w-full whitespace-nowrap rounded-lg border">
-            <div className="flex flex-col md:flex-row gap-4 items-start p-4">
-                <ColumnList title="Columnas Disponibles" items={available as {id: string; label: string}[]} checkedItems={checkedAvailable} onToggle={(id) => handleToggle(id, 'available')} />
-                
-                <div className="flex flex-row md:flex-col gap-2 mt-0 md:mt-16 justify-center w-full md:w-auto">
-                     <Button variant="outline" size="icon" onClick={() => handleMoveAll('toSelected')} disabled={available.length === 0} aria-label="Agregar todas las columnas">
-                        <ChevronsRight className="h-5 w-5 md:rotate-0" />
-                    </Button>
-                     <Button variant="outline" size="icon" onClick={() => handleMove('toSelected')} disabled={checkedAvailable.size === 0} aria-label="Agregar columnas seleccionadas">
-                        <ChevronRight className="h-5 w-5 md:rotate-0" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => handleMove('toAvailable')} disabled={checkedSelected.size === 0} aria-label="Quitar columnas seleccionadas">
-                        <ChevronLeft className="h-5 w-5 md:rotate-0" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => handleMoveAll('toAvailable')} disabled={selected.length === 0} aria-label="Quitar todas las columnas">
-                        <ChevronsLeft className="h-5 w-5 md:rotate-0" />
+        <div className="flex flex-col md:flex-row gap-6 p-2 md:p-4 bg-muted/10 rounded-xl border">
+            {/* Available Columns */}
+            <div className="flex-1 flex flex-col min-w-[280px]">
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-foreground/80">Columnas Disponibles</h3>
+                    <Button variant="ghost" size="sm" onClick={handleAddAll} disabled={available.length === 0} className="text-xs">
+                        <ChevronsRight className="h-4 w-4 mr-1 md:rotate-0 rotate-90" /> Agregar Todas
                     </Button>
                 </div>
-
-                <ColumnList 
-                    title="Columnas Seleccionadas y Orden"
-                    items={selected as {id: string; label: string}[]}
-                    checkedItems={checkedSelected}
-                    onToggle={(id) => handleToggle(id, 'selected')}
-                    onReorder={reorderSelectedColumns}
-                    showOrder
-                />
+                <div className="flex-1 bg-muted/20 border rounded-xl p-3 min-h-[300px] max-h-[50vh] overflow-y-auto space-y-2">
+                    {available.length > 0 ? available.map((item) => (
+                        <AvailableColumnItem key={item.id as string} item={item as any} onAdd={handleAdd} />
+                    )) : (
+                        <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm p-4 text-center">
+                            <SlidersHorizontal className="h-8 w-8 mb-2 opacity-20" />
+                            <p>Todas las columnas han sido seleccionadas.</p>
+                        </div>
+                    )}
+                </div>
             </div>
-            <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+
+            {/* Selected Columns */}
+            <div className="flex-1 flex flex-col min-w-[280px]">
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-foreground/80">Columnas a Exportar</h3>
+                    <Button variant="ghost" size="sm" onClick={handleRemoveAll} disabled={selected.length === 0} className="text-xs text-destructive hover:text-destructive">
+                        <ChevronsLeft className="h-4 w-4 mr-1 md:rotate-0 -rotate-90" /> Quitar Todas
+                    </Button>
+                </div>
+                <div className="flex-1 bg-background border shadow-inner rounded-xl p-3 min-h-[300px] max-h-[50vh] overflow-y-auto">
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <SortableContext items={selected.map(i => i.id as string)} strategy={verticalListSortingStrategy}>
+                            <div className="space-y-2">
+                                {selected.length > 0 ? selected.map((item) => (
+                                    <SortableItem key={item.id as string} id={item.id as string} label={item.label} onRemove={handleRemove} />
+                                )) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm p-4 text-center">
+                                        <p>No hay columnas seleccionadas para exportar.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </SortableContext>
+                    </DndContext>
+                </div>
+            </div>
+        </div>
     );
 };
 
@@ -516,11 +554,22 @@ export default function SettingsPage() {
                 <CardHeader>
                     <CardTitle>Configuración de Exportación CSV</CardTitle>
                     <CardDescription>
-                        Selecciona y ordena las columnas a exportar. Marca los campos en una lista y muévelos a la otra.
+                        Selecciona y ordena las columnas a exportar.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <CSVExportSettings localConfig={localConfig} setLocalConfig={setLocalConfig} />
+                    <Tabs defaultValue="tickets" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="tickets">Tiquetes</TabsTrigger>
+                            <TabsTrigger value="projects">Instalaciones</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="tickets" className="mt-4">
+                            <CSVExportSettings localConfig={localConfig} setLocalConfig={setLocalConfig} type="tickets" />
+                        </TabsContent>
+                        <TabsContent value="projects" className="mt-4">
+                            <CSVExportSettings localConfig={localConfig} setLocalConfig={setLocalConfig} type="projects" />
+                        </TabsContent>
+                    </Tabs>
                 </CardContent>
             </Card>
 
