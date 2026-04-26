@@ -108,6 +108,10 @@ export function useCollection<T = any>(
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
   
-  return { data, isLoading, error };
+  // Derived state to fix React state update lag when the query is first set
+  // If the query exists, but data is null and there's no error, we are still waiting for the first snapshot
+  const isActuallyLoading = isLoading || (!!memoizedTargetRefOrQuery && data === null && error === null);
+
+  return { data, isLoading: isActuallyLoading, error };
 }
     

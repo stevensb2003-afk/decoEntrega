@@ -7,6 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Package, Plus, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { InstallationTypes, InstallationUnits, InstallationType, InstallationUnit } from '@/lib/types';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 
 interface MaterialsListProps {
   materials: ProjectMaterial[];
@@ -15,7 +19,7 @@ interface MaterialsListProps {
   onRemoveMaterial: (materialId: string) => void;
 }
 
-const emptyInput = { name: '', quantity: '1', unit: 'unidad' };
+const emptyInput = { name: '', quantity: '1', unit: 'm²' };
 
 export function MaterialsList({ materials, canEdit, onAddMaterial, onRemoveMaterial }: MaterialsListProps) {
   const [adding, setAdding] = useState(false);
@@ -27,9 +31,9 @@ export function MaterialsList({ materials, canEdit, onAddMaterial, onRemoveMater
     if (!name || isNaN(qty) || qty <= 0) return;
     onAddMaterial({
       id: uuidv4(),
-      name,
+      name: name as InstallationType,
       quantity: qty,
-      unit: input.unit.trim() || 'unidad',
+      unit: (input.unit || 'm²') as InstallationUnit,
       description: '',
       createdAt: new Date().toISOString(),
     });
@@ -43,13 +47,13 @@ export function MaterialsList({ materials, canEdit, onAddMaterial, onRemoveMater
       {materials.length === 0 && !adding ? (
         <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-2">
           <Package className="h-10 w-10 opacity-20" />
-          <p className="text-sm">No hay materiales registrados</p>
+          <p className="text-sm">No hay tipos de instalación registrados</p>
         </div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden">
           {/* Header */}
           <div className="hidden sm:grid grid-cols-[1fr_80px_80px_40px] gap-2 px-4 py-2 bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b">
-            <span>Material</span>
+            <span>Tipo de Instalación</span>
             <span className="text-center">Cantidad</span>
             <span>Unidad</span>
             <span />
@@ -92,16 +96,19 @@ export function MaterialsList({ materials, canEdit, onAddMaterial, onRemoveMater
       {/* Inline Add Form */}
       {canEdit && adding && (
         <div className="rounded-lg border border-primary/40 bg-muted/30 p-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_80px_80px] gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_80px_100px] gap-3">
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Material *</Label>
-              <Input
-                autoFocus
-                value={input.name}
-                onChange={(e) => setInput((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Ej: Porcelanato 60x60"
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
-              />
+              <Label className="text-xs text-muted-foreground">Tipo de Instalación *</Label>
+              <Select value={input.name} onValueChange={(val) => setInput((p) => ({ ...p, name: val }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {InstallationTypes.map((type) => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Cantidad *</Label>
@@ -115,11 +122,16 @@ export function MaterialsList({ materials, canEdit, onAddMaterial, onRemoveMater
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Unidad</Label>
-              <Input
-                value={input.unit}
-                onChange={(e) => setInput((p) => ({ ...p, unit: e.target.value }))}
-                placeholder="m², kg…"
-              />
+              <Select value={input.unit} onValueChange={(val) => setInput((p) => ({ ...p, unit: val }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Unidad" />
+                </SelectTrigger>
+                <SelectContent>
+                  {InstallationUnits.map((unit) => (
+                    <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="flex gap-2">
@@ -136,7 +148,7 @@ export function MaterialsList({ materials, canEdit, onAddMaterial, onRemoveMater
       {/* Add Material Button */}
       {canEdit && !adding && (
         <Button type="button" variant="outline" size="sm" onClick={() => setAdding(true)}>
-          <Plus className="h-4 w-4 mr-1.5" /> Agregar Material
+          <Plus className="h-4 w-4 mr-1.5" /> Agregar Instalación
         </Button>
       )}
     </div>

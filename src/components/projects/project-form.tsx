@@ -19,9 +19,17 @@ import { InstallerSelect } from './installer-select';
 import { useAppContext } from '@/contexts/app-context';
 import { User, ProjectTask, ProjectMaterial } from '@/lib/types';
 import {
-  Plus, Trash2, CheckSquare, Package, Loader2, CalendarDays,
+  Plus, Trash2, CheckSquare, Package, Loader2, CalendarDays, DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { InstallationTypes, InstallationUnits, InstallationType, InstallationUnit } from '@/lib/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ─── Zod Schema ─────────────────────────────────────────────────────────────
 const schema = z.object({
@@ -34,6 +42,10 @@ const schema = z.object({
   isOneDay: z.boolean(),
   endDate: z.string().optional(),
   description: z.string().optional(),
+  costoTotal: z.coerce.number().min(0).optional(),
+  costoInst: z.coerce.number().min(0).optional(),
+  locationLat: z.number().optional(),
+  locationLng: z.number().optional(),
 }).refine(
   (d) => d.isOneDay || (d.endDate && d.endDate >= d.startDate),
   { message: 'La fecha de cierre debe ser igual o posterior al inicio', path: ['endDate'] }
@@ -60,7 +72,7 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
   const [tasks, setTasks] = useState<Omit<ProjectTask, 'createdAt'>[]>([]);
   const [materials, setMaterials] = useState<Omit<ProjectMaterial, 'createdAt'>[]>([]);
   const [taskInput, setTaskInput] = useState('');
-  const [materialInput, setMaterialInput] = useState({ name: '', quantity: '1', unit: 'unidad' });
+  const [materialInput, setMaterialInput] = useState<{name: string, quantity: string, unit: string}>({ name: '', quantity: '1', unit: 'm²' });
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -74,6 +86,8 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
       isOneDay: true,
       endDate: '',
       description: '',
+      costoTotal: undefined,
+      costoInst: undefined,
     },
   });
 
@@ -96,9 +110,9 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
     if (!name || isNaN(qty) || qty <= 0) return;
     setMaterials((prev) => [
       ...prev,
-      { id: uuidv4(), name, quantity: qty, unit: materialInput.unit.trim() || 'unidad', description: '' },
+      { id: uuidv4(), name: name as InstallationType, quantity: qty, unit: materialInput.unit as InstallationUnit, description: '' },
     ]);
-    setMaterialInput({ name: '', quantity: '1', unit: 'unidad' });
+    setMaterialInput({ name: '', quantity: '1', unit: 'm²' });
   };
 
   const removeMaterial = (id: string) => setMaterials((prev) => prev.filter((m) => m.id !== id));
@@ -107,6 +121,28 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
   const onSubmit = async (values: FormData) => {
     setIsSubmitting(true);
     const now = new Date().toISOString();
+
+    // Auto-add pending material if present
+    const name = materialInput.name.trim();
+    const qty = parseFloat(materialInput.quantity);
+    let finalMaterials = [...materials];
+    if (name && !isNaN(qty) && qty > 0) {
+      finalMaterials.push({
+        id: uuidv4(),
+        name: name as InstallationType,
+        quantity: qty,
+        unit: materialInput.unit as InstallationUnit,
+        description: ''
+      });
+    }
+
+    // Auto-add pending task if present
+    const tTitle = taskInput.trim();
+    let finalTasks = [...tasks];
+    if (tTitle) {
+      finalTasks.push({ id: uuidv4(), title: tTitle, isCompleted: false });
+    }
+
     const payload = {
       name: values.name,
       customerName: values.customerName,
@@ -117,8 +153,14 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
       isOneDay: values.isOneDay,
       endDate: values.isOneDay ? values.startDate : (values.endDate ?? values.startDate),
       description: values.description ?? '',
-      tasks: tasks.map((t) => ({ ...t, createdAt: now })),
-      materials: materials.map((m) => ({ ...m, createdAt: now })),
+      costoTotal: values.costoTotal,
+      costoInst: values.costoInst,
+      locationLat: values.locationLat,
+      locationLng: values.locationLng,
+      tasks: finalTasks.map((t) => ({ ...t, createdAt: now })),
+      materials: finalMaterials.map((m) => ({ ...m, createdAt: now })),
+      extraCosts: [],
+      payments: [],
       notes: [],
     };
     addProject(payload, nextProjectId);
@@ -195,6 +237,8 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
                   value={field.value}
                   onChange={(_url, _lat, _lng, address) => {
                     field.onChange(address ?? _url);
+                    if (_lat) form.setValue('locationLat', _lat);
+                    if (_lng) form.setValue('locationLng', _lng);
                   }}
                   placeholder="Buscar dirección o marcar en mapa…"
                 />
@@ -251,13 +295,14 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
           </div>
         </section>
 
-        {/* ── Section: Instaladores ─────────────────────────────── */}
+        {/* ── Section: Instaladores y Finanzas ─────────────────────────────── */}
         <section className="space-y-4">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b pb-2">
-            Instaladores Asignados
+            Instalación y Finanzas
           </h2>
           <FormField control={form.control} name="installerIds" render={({ field }) => (
             <FormItem>
+              <FormLabel>Instaladores Asignados</FormLabel>
               <FormControl>
                 <InstallerSelect
                   installers={installers}
@@ -269,6 +314,52 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
               <FormMessage />
             </FormItem>
           )} />
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+            <FormField control={form.control} name="costoTotal" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Costo Total Proyecto</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-sm font-semibold text-muted-foreground">₡</span>
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      min="0" 
+                      className="pl-7" 
+                      placeholder="0" 
+                      {...field}
+                      value={field.value ?? ''}
+                      onFocus={(e) => e.target.select()}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+
+            <FormField control={form.control} name="costoInst" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mano de Obra</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-sm font-semibold text-muted-foreground">₡</span>
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      min="0" 
+                      className="pl-7" 
+                      placeholder="0" 
+                      {...field}
+                      value={field.value ?? ''}
+                      onFocus={(e) => e.target.select()}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+          </div>
         </section>
 
         {/* ── Section: Tareas ──────────────────────────────────── */}
@@ -307,23 +398,27 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
           )}
         </section>
 
-        {/* ── Section: Materiales ───────────────────────────────── */}
+        {/* ── Section: Materiales a Instalar ───────────────────────────────── */}
         <section className="space-y-4">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b pb-2">
             <Package className="inline h-4 w-4 mr-1.5" />
-            Materiales <span className="text-muted-foreground normal-case font-normal text-xs">(opcional)</span>
+            Materiales a Instalar <span className="text-muted-foreground normal-case font-normal text-xs">(requerido)</span>
           </h2>
 
           {/* Add material inputs */}
-          <div className="grid grid-cols-[1fr_80px_80px_auto] gap-2 items-end">
+          <div className="grid grid-cols-[1fr_80px_100px_auto] gap-2 items-end">
             <div>
-              <Label className="text-xs text-muted-foreground mb-1 block">Material</Label>
-              <Input
-                value={materialInput.name}
-                onChange={(e) => setMaterialInput((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Ej: Porcelanato 60x60"
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addMaterial(); } }}
-              />
+              <Label className="text-xs text-muted-foreground mb-1 block">Tipo de Instalación</Label>
+              <Select value={materialInput.name} onValueChange={(val) => setMaterialInput((p) => ({ ...p, name: val }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {InstallationTypes.map((type) => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground mb-1 block">Cantidad</Label>
@@ -333,15 +428,21 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
                 step="0.01"
                 value={materialInput.quantity}
                 onChange={(e) => setMaterialInput((p) => ({ ...p, quantity: e.target.value }))}
+                onFocus={(e) => e.target.select()}
               />
             </div>
             <div>
               <Label className="text-xs text-muted-foreground mb-1 block">Unidad</Label>
-              <Input
-                value={materialInput.unit}
-                onChange={(e) => setMaterialInput((p) => ({ ...p, unit: e.target.value }))}
-                placeholder="m², kg…"
-              />
+              <Select value={materialInput.unit} onValueChange={(val) => setMaterialInput((p) => ({ ...p, unit: val }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Unidad" />
+                </SelectTrigger>
+                <SelectContent>
+                  {InstallationUnits.map((unit) => (
+                    <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button type="button" variant="outline" size="icon" onClick={addMaterial} className="mb-0.5" aria-label="Agregar material">
               <Plus className="h-4 w-4" />

@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAppContext } from '@/contexts/app-context';
+import { useAuth } from '@/hooks/use-auth';
 import { ProjectDetail } from '@/components/projects/project-detail';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import Link from 'next/link';
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { currentUser, isUserLoading } = useAuth();
   const { projects, isProjectsLoading, users } = useAppContext();
   const router = useRouter();
 
@@ -17,12 +19,12 @@ export default function ProjectDetailPage() {
 
   // Once loaded, if not found redirect back
   useEffect(() => {
-    if (!isProjectsLoading && !project) {
+    if (!isUserLoading && !isProjectsLoading && !project) {
       router.replace('/projects');
     }
-  }, [isProjectsLoading, project, router]);
+  }, [isUserLoading, isProjectsLoading, project, router]);
 
-  if (isProjectsLoading) {
+  if (isUserLoading || isProjectsLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

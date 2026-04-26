@@ -65,6 +65,22 @@ export type ProjectStatus = 'Pendiente' | 'En Progreso' | 'Completado' | 'Cancel
 
 export const ProjectStatuses: ProjectStatus[] = ['Pendiente', 'En Progreso', 'Completado', 'Cancelado'];
 
+export const InstallationTypes = [
+  'Panel WPC Interior',
+  'Panel WPC Exterior',
+  'Lámina PVC',
+  'Piso SPC',
+  'Piso DECK',
+  'Panel PU',
+  'Iluminación LED'
+] as const;
+
+export type InstallationType = typeof InstallationTypes[number];
+
+export const InstallationUnits = ['m²', 'm lineales'] as const;
+
+export type InstallationUnit = typeof InstallationUnits[number];
+
 export type ProjectTask = {
   id: string; // Unique ID for the task
   title: string;
@@ -74,9 +90,9 @@ export type ProjectTask = {
 
 export type ProjectMaterial = {
   id: string;
-  name: string;
+  name: InstallationType | string;
   quantity: number;
-  unit: string;
+  unit: InstallationUnit | string;
   description?: string;
   createdAt: FieldValue | string;
 };
@@ -87,6 +103,22 @@ export type ProjectNote = {
   createdAt: FieldValue | string;
   createdBy: string; // User ID
   createdByName?: string;
+};
+
+export type ProjectPayment = {
+  id: string;
+  amount: number;
+  date: string;
+  description?: string;
+  createdAt: FieldValue | string;
+};
+
+export type ExtraCost = {
+  id: string;
+  description: string;
+  amount: number; // In CRC
+  createdAt: FieldValue | string;
+  createdBy: string;
 };
 
 export type Project = {
@@ -104,7 +136,13 @@ export type Project = {
   installerIds: string[]; // Assigned installers
   tasks: ProjectTask[];
   materials: ProjectMaterial[];
+  extraCosts: ExtraCost[];
+  payments: ProjectPayment[];
   notes: ProjectNote[];
+  costoTotal?: number;
+  costoInst?: number;
+  locationLat?: number;
+  locationLng?: number;
   createdAt: FieldValue | string;
   updatedAt: FieldValue | string;
   [key: string]: any;
@@ -114,7 +152,7 @@ export const navLinksConfig = {
     '/dashboard': { label: 'Mi Día', allowedRoles: ['admin', 'vendedor', 'bodeguero'] },
     '/driver': { label: 'Mi Ruta', allowedRoles: ['admin', 'chofer'] },
     '/projects': { label: 'Proyectos', allowedRoles: ['admin', 'vendedor', 'instalador'] },
-    '/calendar': { label: 'Calendario', allowedRoles: ['admin', 'vendedor'] },
+    '/calendar': { label: 'Calendario', allowedRoles: ['admin', 'vendedor', 'instalador'] },
     '/history': { label: 'Historial', allowedRoles: ['admin', 'vendedor'] },
     '/admin/users': { label: 'Usuarios', allowedRoles: ['admin'] },
     '/admin/settings': { label: 'Configuraciones', allowedRoles: ['admin'] },

@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { Project, ProjectStatuses, User } from '@/lib/types';
 import { ProjectCard } from './project-card';
-import { ClipboardList, Filter, Search, X } from 'lucide-react';
+import { ClipboardList, Filter, Search, X, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -28,6 +29,7 @@ export function ProjectList({ projects, users, installers }: ProjectListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(ALL_STATUSES);
   const [installerFilter, setInstallerFilter] = useState<string>(ALL_INSTALLERS);
+  const [currentTab, setCurrentTab] = useState<'active' | 'completed' | 'cancelled'>('active');
 
   const hasActiveFilters =
     searchQuery.trim() !== '' ||
@@ -37,19 +39,27 @@ export function ProjectList({ projects, users, installers }: ProjectListProps) {
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return projects.filter((p) => {
+      const matchesTab = 
+        currentTab === 'active' ? (p.status === 'Pendiente' || p.status === 'En Progreso') :
+        currentTab === 'completed' ? p.status === 'Completado' :
+        p.status === 'Cancelado';
+
       const matchesSearch =
         q === '' ||
         p.projectId?.toLowerCase().includes(q) ||
         p.name?.toLowerCase().includes(q) ||
         p.customerName?.toLowerCase().includes(q);
+      
       const matchesStatus =
         statusFilter === ALL_STATUSES || p.status === statusFilter;
+      
       const matchesInstaller =
         installerFilter === ALL_INSTALLERS ||
         p.installerIds?.includes(installerFilter);
-      return matchesSearch && matchesStatus && matchesInstaller;
+        
+      return matchesTab && matchesSearch && matchesStatus && matchesInstaller;
     });
-  }, [projects, searchQuery, statusFilter, installerFilter]);
+  }, [projects, searchQuery, statusFilter, installerFilter, currentTab]);
 
   const clearAll = () => {
     setSearchQuery('');
@@ -59,6 +69,31 @@ export function ProjectList({ projects, users, installers }: ProjectListProps) {
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Tabs */}
+      <Tabs 
+        value={currentTab} 
+        onValueChange={(val) => {
+          setCurrentTab(val as any);
+          setStatusFilter(ALL_STATUSES);
+        }} 
+        className="w-full"
+      >
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="active" className="flex items-center gap-1.5 sm:gap-2">
+            <Clock className="w-4 h-4" />
+            <span className="truncate">Activos</span>
+          </TabsTrigger>
+          <TabsTrigger value="completed" className="flex items-center gap-1.5 sm:gap-2">
+            <CheckCircle2 className="w-4 h-4" />
+            <span className="truncate">Completados</span>
+          </TabsTrigger>
+          <TabsTrigger value="cancelled" className="flex items-center gap-1.5 sm:gap-2">
+            <XCircle className="w-4 h-4" />
+            <span className="truncate">Cancelados</span>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Search Bar */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -84,19 +119,18 @@ export function ProjectList({ projects, users, installers }: ProjectListProps) {
       <div className="flex items-center gap-2 flex-wrap rounded-lg border border-border bg-card px-4 py-3">
         <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
 
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-8 w-auto min-w-[130px] text-xs">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_STATUSES}>Todos los estados</SelectItem>
-            {ProjectStatuses.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {currentTab === 'active' && (
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-8 w-auto min-w-[130px] text-xs">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_STATUSES}>Todos los activos</SelectItem>
+              <SelectItem value="Pendiente">Pendiente</SelectItem>
+              <SelectItem value="En Progreso">En Progreso</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
 
         {installers.length > 0 && (
           <Select value={installerFilter} onValueChange={setInstallerFilter}>

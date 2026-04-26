@@ -67,9 +67,16 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode; }) {
       }
 
       // For non-admin users, check if they have access to the current path.
-      const currentPath = pathname as NavPath;
-      const allowedRolesForPath = navLinksConfig[currentPath]?.allowedRoles || [];
-      const hasAccess = allowedRolesForPath.some(role => userRoles.includes(role));
+      // We check if the current pathname starts with any of the defined base paths
+      let hasAccess = false;
+      for (const [path, config] of Object.entries(navLinksConfig)) {
+        if (pathname === path || pathname.startsWith(`${path}/`)) {
+          if (config.allowedRoles.some((role: any) => userRoles.includes(role))) {
+            hasAccess = true;
+            break;
+          }
+        }
+      }
       
       if (!hasAccess) {
           let destination = '/';

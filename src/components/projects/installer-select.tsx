@@ -41,11 +41,18 @@ export function InstallerSelect({ installers, value, onChange, error }: Installe
   return (
     <div ref={containerRef} className="relative w-full">
       {/* Trigger */}
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setOpen((o) => !o);
+          }
+        }}
         className={cn(
-          'flex min-h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+          'flex min-h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer',
           error && 'border-destructive focus:ring-destructive'
         )}
       >
@@ -72,7 +79,7 @@ export function InstallerSelect({ installers, value, onChange, error }: Installe
           )}
         </div>
         <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground ml-2" />
-      </button>
+      </div>
 
       {/* Dropdown */}
       {open && (

@@ -67,6 +67,21 @@ export function TaskList({
 
   return (
     <div className="space-y-5">
+      {/* Add new task */}
+      {canEdit && (
+        <div className="flex gap-2">
+          <Input
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
+            placeholder="Nueva tarea…"
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
+          />
+          <Button type="button" variant="outline" size="icon" onClick={handleAdd} aria-label="Agregar tarea">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Progress Header */}
       {total > 0 && (
         <div className="space-y-2">
@@ -154,21 +169,6 @@ export function TaskList({
             </li>
           ))}
         </ul>
-      )}
-
-      {/* Add new task */}
-      {canEdit && (
-        <div className="flex gap-2 pt-1">
-          <Input
-            value={newTaskTitle}
-            onChange={(e) => setNewTaskTitle(e.target.value)}
-            placeholder="Nueva tarea…"
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
-          />
-          <Button type="button" variant="outline" size="icon" onClick={handleAdd} aria-label="Agregar tarea">
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
       )}
     </div>
   );

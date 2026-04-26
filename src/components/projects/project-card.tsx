@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { Project, User } from '@/lib/types';
+import { useAuth } from '@/hooks/use-auth';
+import { cn } from '@/lib/utils';
 import { ProjectStatusBadge } from './status-badge';
 import { CalendarDays, User2, Phone, HardHat, ArrowRight } from 'lucide-react';
 import { format, isSameDay, parseISO, isValid } from 'date-fns';
@@ -47,6 +49,17 @@ export function ProjectCard({ project, installers }: ProjectCardProps) {
   const tasksDone = project.tasks?.filter((t) => t.isCompleted).length ?? 0;
   const tasksTotal = project.tasks?.length ?? 0;
   const taskProgress = tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0;
+
+  const { currentUser } = useAuth();
+  const userRoles = currentUser?.roles ?? (currentUser?.role ? [currentUser.role] : []);
+  const isAdmin = userRoles.includes('admin');
+  const isVendedor = userRoles.includes('vendedor');
+  const canViewTotal = isAdmin || isVendedor;
+
+  // Cálculos financieros
+  const totalExtraCosts = project.extraCosts?.reduce((sum, c) => sum + c.amount, 0) ?? 0;
+  const totalPaid = project.payments?.reduce((sum, p) => sum + p.amount, 0) ?? 0;
+  const saldoPendiente = (project.costoInst ?? 0) + totalExtraCosts - totalPaid;
 
   return (
     <Link
@@ -113,6 +126,51 @@ export function ProjectCard({ project, installers }: ProjectCardProps) {
             </div>
           </div>
         )}
+
+        {/* Finanzas */}
+        <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
+          <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+            {/* Mano de Obra */}
+            <div className="flex flex-col">
+              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Mano de Obra</span>
+              <span className="font-bold text-sky-600 text-sm">₡{project.costoInst?.toLocaleString() ?? '0'}</span>
+            </div>
+
+            {/* Pendiente */}
+            <div className="flex flex-col text-right">
+              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Pendiente</span>
+              <span className={cn(
+                "font-bold text-sm",
+                saldoPendiente > 0 ? "text-emerald-600" : "text-muted-foreground"
+              )}>
+                ₡{saldoPendiente.toLocaleString()}
+              </span>
+            </div>
+
+            {/* Extra Costs (Solo si hay) */}
+            {totalExtraCosts > 0 && (
+              <div className="flex flex-col">
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Extras</span>
+                <span className="font-semibold text-xs text-amber-600">₡{totalExtraCosts.toLocaleString()}</span>
+              </div>
+            )}
+
+            {/* Adelantos (Solo si hay) */}
+            {totalPaid > 0 && (
+              <div className="flex flex-col text-right">
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Adelantado</span>
+                <span className="font-semibold text-xs text-orange-600">₡{totalPaid.toLocaleString()}</span>
+              </div>
+            )}
+          </div>
+
+          {canViewTotal && (
+            <div className="pt-2 border-t border-dashed border-border/40 flex items-center justify-between text-[11px]">
+              <span className="text-muted-foreground font-medium italic">Valor Contrato:</span>
+              <span className="font-bold text-foreground/80">₡{project.costoTotal?.toLocaleString() ?? '0'}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Footer arrow */}

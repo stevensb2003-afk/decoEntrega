@@ -6,6 +6,7 @@ import { ProjectStatusBadge } from '@/components/projects/status-badge';
 import { format, fromUnixTime } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { useAppContext } from '@/contexts/app-context';
+import { useAuth } from '@/hooks/use-auth';
 
 const DateCell = ({ date }: { date: any }) => {
   if (!date) return <span className="text-muted-foreground">-</span>;
@@ -31,6 +32,18 @@ const InstallersCell = ({ installerIds }: { installerIds: string[] }) => {
   return <span>{installerNames.join(', ')}</span>;
 };
 
+const FinanceCell = ({ amount, isRestricted }: { amount?: number, isRestricted?: boolean }) => {
+  const { currentUser } = useAuth();
+  const isAdminOrSeller = currentUser?.role === 'admin' || currentUser?.role === 'vendedor';
+
+  if (isRestricted && !isAdminOrSeller) {
+    return <span className="text-muted-foreground">---</span>;
+  }
+
+  const value = amount || 0;
+  return <span>₡{value.toLocaleString('es-CR')}</span>;
+};
+
 export const projectColumns: ColumnDef<Project>[] = [
   {
     accessorKey: 'projectId',
@@ -38,7 +51,7 @@ export const projectColumns: ColumnDef<Project>[] = [
     cell: ({ row }) => <span className="font-semibold">{row.original.projectId}</span>,
   },
   {
-    accessorKey: 'projectName',
+    accessorKey: 'name',
     header: 'Proyecto',
   },
   {
@@ -63,6 +76,21 @@ export const projectColumns: ColumnDef<Project>[] = [
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
     },
+  },
+  {
+    accessorKey: 'costoInst',
+    header: 'Instalación',
+    cell: ({ row }) => <FinanceCell amount={row.original.costoInst} />,
+  },
+  {
+    accessorKey: 'adelantoInst',
+    header: 'Adelanto',
+    cell: ({ row }) => <FinanceCell amount={row.original.adelantoInst} />,
+  },
+  {
+    accessorKey: 'costoTotal',
+    header: 'Ingreso Total',
+    cell: ({ row }) => <FinanceCell amount={row.original.costoTotal} isRestricted={true} />,
   },
   {
     accessorKey: 'startDate',

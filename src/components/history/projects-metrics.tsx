@@ -3,8 +3,9 @@
 import { useMemo } from 'react';
 import { Project } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Hammer, CheckCircle2, Clock, CalendarDays, BarChart3 } from 'lucide-react';
+import { Hammer, CheckCircle2, Clock, CalendarDays, BarChart3, DollarSign, TrendingUp, Wallet } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
+import { useAuth } from '@/hooks/use-auth';
 import { differenceInDays, format, fromUnixTime } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -27,6 +28,9 @@ interface ProjectsMetricsProps {
 }
 
 export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
+  const { currentUser } = useAuth();
+  const isInstaller = currentUser?.role === 'instalador';
+
   const metrics = useMemo(() => {
     const total = projects.length;
     const completed = projects.filter(p => p.status === 'Completado');
@@ -35,6 +39,8 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
     let onTimeCount = 0;
     let totalDays = 0;
     let validDurationCount = 0;
+    let totalRevenue = 0;
+    let totalInstallerCost = 0;
 
     // Monthly data for Bar Chart
     const monthlyDataMap: Record<string, number> = {};
@@ -48,6 +54,10 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
     };
 
     projects.forEach(p => {
+      const extrasTotal = p.extraCosts?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
+      totalRevenue += (p.costoTotal || 0) + extrasTotal;
+      totalInstallerCost += (p.costoInst || 0) + extrasTotal;
+
       // Status Distribution
       if (statusDataMap[p.status] !== undefined) {
           statusDataMap[p.status]++;
@@ -104,13 +114,20 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
             color: PROJECT_STATUS_STYLING[name as keyof typeof PROJECT_STATUS_STYLING]?.badge || 'gray-500' // Pass the entire badge string to extract color
         }));
 
+    const grossMargin = totalRevenue - totalInstallerCost;
+    const profitPercentage = totalRevenue > 0 ? (grossMargin / totalRevenue) * 100 : 0;
+
     return {
       total,
       completionRate,
       punctualityRate,
       avgDuration,
       monthlyData,
-      statusData
+      statusData,
+      totalRevenue,
+      totalInstallerCost,
+      grossMargin,
+      profitPercentage
     };
   }, [projects]);
 
@@ -164,6 +181,48 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
             <div className="text-2xl font-bold">{metrics.avgDuration.toFixed(1)} <span className="text-lg">días</span></div>
           </CardContent>
         </Card>
+        {!isInstaller && (
+          <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
+                <DollarSign className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">₡{metrics.totalRevenue.toLocaleString('es-CR')}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Costos Instalación</CardTitle>
+                <DollarSign className="h-4 w-4 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">₡{metrics.totalInstallerCost.toLocaleString('es-CR')}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Margen Bruto</CardTitle>
+                <Wallet className="h-4 w-4 text-indigo-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">₡{metrics.grossMargin.toLocaleString('es-CR')}</div>
+                <p className="text-xs text-muted-foreground">Ingresos - Costos Instalación</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Porcentaje Ganancia</CardTitle>
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{metrics.profitPercentage.toFixed(1)}%</div>
+                <p className="text-xs text-muted-foreground">Sobre el ingreso total</p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

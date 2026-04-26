@@ -112,7 +112,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const userRoles = currentUser.roles || (currentUser.role ? [currentUser.role] : []);
     
     // Check if user is ONLY an instalador
-    const isOnlyInstaller = userRoles.includes('instalador') && userRoles.length === 1;
+    const isOnlyInstaller = userRoles.includes('instalador') && !userRoles.some(r => ['admin', 'vendedor', 'chofer', 'bodeguero'].includes(r));
     
     if (isOnlyInstaller) {
         return query(projectsCollectionRef, where('installerIds', 'array-contains', currentUser.id));
@@ -306,14 +306,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
     
     addDocumentNonBlocking(projectsCollectionRef, newProject);
-    toast({ title: "Proyecto Creadado", description: `Un nuevo proyecto ${projectId} ha sido creado exitosamente.` });
+    toast({ variant: 'success', size: 'sm', description: "(Proyecto Creado)", className: "w-fit mx-auto sm:right-4 sm:bottom-4" });
   };
 
   const updateProject = (projectId: string, updatedData: Partial<Project>) => {
     if (!firestore) return;
     const projectRef = doc(firestore, 'projects', projectId);
     updateDocumentNonBlocking(projectRef, { ...updatedData, updatedAt: serverTimestamp() });
-    toast({ title: 'Proyecto Actualizado', description: 'El proyecto ha sido actualizado exitosamente.' });
+    toast({ variant: 'success', size: 'sm', description: "(Proyecto Actualizado)", className: "w-fit ml-auto" });
   };
 
   const deleteProject = (projectId: string) => {
