@@ -19,7 +19,7 @@ import { InstallerSelect } from './installer-select';
 import { useAppContext } from '@/contexts/app-context';
 import { User, ProjectTask, ProjectMaterial } from '@/lib/types';
 import {
-  Plus, Trash2, CheckSquare, Package, Loader2, CalendarDays, DollarSign
+  Plus, Trash2, CheckSquare, Package, Loader2, CalendarDays, Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { InstallationTypes, InstallationUnits, InstallationType, InstallationUnit } from '@/lib/types';
@@ -39,6 +39,8 @@ const schema = z.object({
   locationDetails: z.string().min(5, 'Ubicación requerida'),
   installerIds: z.array(z.string()).min(1, 'Asigna al menos un instalador'),
   startDate: z.string().min(1, 'Fecha de inicio requerida'),
+  applyStartTime: z.boolean().default(true),
+  startTime: z.string().optional(),
   isOneDay: z.boolean(),
   endDate: z.string().optional(),
   description: z.string().optional(),
@@ -83,6 +85,8 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
       locationDetails: '',
       installerIds: [],
       startDate: today,
+      applyStartTime: true,
+      startTime: '08:00',
       isOneDay: true,
       endDate: '',
       description: '',
@@ -150,6 +154,7 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
       locationDetails: values.locationDetails,
       installerIds: values.installerIds,
       startDate: values.startDate,
+      startTime: values.applyStartTime ? (values.startTime ?? '') : '',
       isOneDay: values.isOneDay,
       endDate: values.isOneDay ? values.startDate : (values.endDate ?? values.startDate),
       description: values.description ?? '',
@@ -252,7 +257,7 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
         <section className="space-y-4">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b pb-2">
             <CalendarDays className="inline h-4 w-4 mr-1.5" />
-            Fechas
+            Fechas y Hora de Inicio
           </h2>
 
           <FormField control={form.control} name="isOneDay" render={({ field }) => (
@@ -270,7 +275,8 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
             </FormItem>
           )} />
 
-          <div className={cn('grid gap-4', isOneDay ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2')}>
+          {/* Date row + start time */}
+          <div className={cn('grid gap-4', isOneDay ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3')}>
             <FormField control={form.control} name="startDate" render={({ field }) => (
               <FormItem>
                 <FormLabel>{isOneDay ? 'Fecha' : 'Fecha de Inicio'}</FormLabel>
@@ -292,6 +298,38 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
                 </FormItem>
               )} />
             )}
+
+            <div className="space-y-3">
+              <FormField control={form.control} name="applyStartTime" render={({ field }) => (
+                <FormItem className="flex items-center gap-3 space-y-0 pt-2">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      id="applyStartTime"
+                    />
+                  </FormControl>
+                  <Label htmlFor="applyStartTime" className="cursor-pointer font-normal text-sm">
+                    Aplica hora de inicio
+                  </Label>
+                </FormItem>
+              )} />
+
+              {form.watch('applyStartTime') && (
+                <FormField control={form.control} name="startTime" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1.5 text-xs">
+                      <Clock className="h-3.5 w-3.5" />
+                      Hora Exacta
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
+            </div>
           </div>
         </section>
 

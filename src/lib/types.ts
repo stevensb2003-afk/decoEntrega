@@ -130,6 +130,7 @@ export type Project = {
   locationDetails: string;
   status: ProjectStatus;
   startDate: FieldValue | string;
+  startTime?: string; // HH:mm format, e.g. "08:00"
   endDate?: FieldValue | string;
   isOneDay: boolean;
   ownerId: string; // Vendedor who created it

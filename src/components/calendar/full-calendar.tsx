@@ -38,7 +38,11 @@ import {
   User as UserIcon,
   Package,
   Wrench,
+  Clock,
+  List,
+  Calendar as CalendarIcon,
 } from 'lucide-react';
+import { UnifiedAgenda } from './unified-agenda';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -200,6 +204,9 @@ function ProjectSpanBar({ segment, onClick }: ProjectSpanBarProps) {
             <>
               <Wrench className="inline h-2.5 w-2.5 mr-1 opacity-80" />
               {project.projectId} {project.name}
+              {project.startTime && (
+                <span className="ml-1.5 opacity-90 font-semibold">{project.startTime}</span>
+              )}
             </>
           )}
           {!isStart && '\u00A0'}
@@ -209,6 +216,12 @@ function ProjectSpanBar({ segment, onClick }: ProjectSpanBarProps) {
         <div className="font-bold text-base mb-1">{project.projectId}</div>
         <div className="text-sm font-medium mb-2">{project.name}</div>
         <div className="space-y-1.5 text-sm">
+          {project.startTime && (
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-indigo-400" />
+              <span className="font-semibold text-indigo-600">Inicio: {project.startTime} hrs</span>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <UserIcon className="w-4 h-4 text-muted-foreground" />
             <span>{project.customerName}</span>
@@ -450,6 +463,7 @@ export function FullCalendar() {
   const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
   const [isModalOpen, setModalOpen] = React.useState(false);
   const [view, setView] = React.useState<CalendarView>('month');
+  const [viewMode, setViewMode] = React.useState<'calendar' | 'agenda'>('calendar');
   const { toast } = useToast();
 
   const userRoles = currentUser?.roles ?? (currentUser?.role ? [currentUser.role] : []);
@@ -577,11 +591,30 @@ export function FullCalendar() {
       <TooltipProvider delayDuration={300}>
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4">
           {/* ── Header ── */}
-          <div className="flex flex-col gap-3 mb-4">
+          <div className="flex flex-col gap-4 mb-4">
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 bg-muted p-1 rounded-lg shrink-0">
+                <Button
+                  variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className={cn("h-8 px-3 text-xs gap-2", viewMode === 'calendar' && "bg-background shadow-sm")}
+                  onClick={() => setViewMode('calendar')}
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                  Calendario
+                </Button>
+                <Button
+                  variant={viewMode === 'agenda' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className={cn("h-8 px-3 text-xs gap-2", viewMode === 'agenda' && "bg-background shadow-sm")}
+                  onClick={() => setViewMode('agenda')}
+                >
+                  <List className="h-4 w-4" />
+                  Agenda
+                </Button>
+              </div>
 
-            {/* Row 1: Title + Navigation */}
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-bold capitalize truncate">{headerTitle}</h2>
               <div className="flex items-center gap-1 shrink-0">
                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={handlePrev}>
                   <ChevronLeft className="h-4 w-4" />
@@ -595,84 +628,104 @@ export function FullCalendar() {
               </div>
             </div>
 
-            {/* Row 2: View selector (full width on mobile) */}
-            <div className="grid grid-cols-3 bg-muted rounded-lg p-1 gap-1">
-              {(['month', 'two-weeks', 'week'] as CalendarView[]).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  className={cn(
-                    'rounded-md py-1.5 text-xs font-medium transition-all',
-                    view === v
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {v === 'month' ? 'Mes' : v === 'two-weeks' ? '2 Semanas' : 'Semana'}
-                </button>
-              ))}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {viewMode === 'calendar' && (
+                <div className="grid grid-cols-3 bg-muted rounded-lg p-1 gap-1 flex-1">
+                  {(['month', 'two-weeks', 'week'] as CalendarView[]).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setView(v)}
+                      className={cn(
+                        'rounded-md py-1.5 text-xs font-medium transition-all',
+                        view === v
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      {v === 'month' ? 'Mes' : v === 'two-weeks' ? '2 Semanas' : 'Semana'}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Row 3: Filter selector (full width, only for non-installers) */}
+              {!isInstallerOnly && (
+                <div className={cn("grid grid-cols-3 bg-muted rounded-lg p-1 gap-1", viewMode === 'calendar' ? "flex-1" : "w-full")}>
+                  {([
+                    { key: 'deliveries', label: 'Entregas', icon: <Package className="h-3 w-3 text-cyan-600" /> },
+                    { key: 'projects',   label: 'Proyectos', icon: <Wrench className="h-3 w-3 text-indigo-600" /> },
+                    { key: 'all',        label: 'Ambos',     icon: null },
+                  ] as { key: CalendarFilter; label: string; icon: React.ReactNode }[]).map(({ key, label, icon }) => (
+                    <button
+                      key={key}
+                      onClick={() => setFilter(key)}
+                      className={cn(
+                        'rounded-md py-1.5 text-xs font-medium transition-all flex items-center justify-center gap-1',
+                        filter === key
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      {icon}
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Row 3: Filter selector (full width, only for non-installers) */}
-            {!isInstallerOnly && (
-              <div className="grid grid-cols-3 bg-muted rounded-lg p-1 gap-1">
-                {([
-                  { key: 'deliveries', label: 'Entregas', icon: <Package className="h-3 w-3 text-cyan-600" /> },
-                  { key: 'projects',   label: 'Proyectos', icon: <Wrench className="h-3 w-3 text-indigo-600" /> },
-                  { key: 'all',        label: 'Ambos',     icon: null },
-                ] as { key: CalendarFilter; label: string; icon: React.ReactNode }[]).map(({ key, label, icon }) => (
-                  <button
-                    key={key}
-                    onClick={() => setFilter(key)}
-                    className={cn(
-                      'rounded-md py-1.5 text-xs font-medium transition-all flex items-center justify-center gap-1',
-                      filter === key
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground',
-                    )}
-                  >
-                    {icon}
-                    {label}
-                  </button>
+            <div className="flex items-center justify-center py-1">
+              <h2 className="text-sm font-bold capitalize text-muted-foreground">{headerTitle}</h2>
+            </div>
+          </div>
+
+          {viewMode === 'calendar' ? (
+            <>
+              {/* ── Weekday headers ── */}
+              <div className="grid grid-cols-7 border-l border-t">
+                {weekdays.map((d) => (
+                  <div key={d} className="p-2 text-center font-medium text-sm text-muted-foreground border-b border-r">
+                    {d}
+                  </div>
                 ))}
               </div>
-            )}
-          </div>
 
-          {/* ── Weekday headers ── */}
-          <div className="grid grid-cols-7 border-l border-t">
-            {weekdays.map((d) => (
-              <div key={d} className="p-2 text-center font-medium text-sm text-muted-foreground border-b border-r">
-                {d}
+              {/* ── Week rows ── */}
+              <div className="border-l">
+                {weekData.map(({ week, segments }, wi) => (
+                  <WeekRow
+                    key={wi}
+                    week={week}
+                    segments={segments}
+                    showProjects={showProjects}
+                    showTickets={showTickets}
+                    ticketsByDay={ticketsByDay}
+                    blockedDates={blockedDates}
+                    maxDeliveries={maxDeliveries}
+                    currentDate={currentDate}
+                    users={users}
+                    onDayClick={handleDayClick}
+                    onBlockDate={handleBlockDate}
+                    onUnblockDate={handleUnblockDate}
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                    onProjectClick={(id) => router.push(`/projects/${id}`)}
+                    maxSlot={globalMaxSlot}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
-
-          {/* ── Week rows ── */}
-          <div className="border-l">
-            {weekData.map(({ week, segments }, wi) => (
-              <WeekRow
-                key={wi}
-                week={week}
-                segments={segments}
-                showProjects={showProjects}
-                showTickets={showTickets}
-                ticketsByDay={ticketsByDay}
-                blockedDates={blockedDates}
-                maxDeliveries={maxDeliveries}
-                currentDate={currentDate}
-                users={users}
-                onDayClick={handleDayClick}
-                onBlockDate={handleBlockDate}
-                onUnblockDate={handleUnblockDate}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                onProjectClick={(id) => router.push(`/projects/${id}`)}
-                maxSlot={globalMaxSlot}
+            </>
+          ) : (
+            <div className="pt-2">
+              <UnifiedAgenda 
+                projects={projects} 
+                ticketsByDay={ticketsByDay} 
+                users={users} 
+                filter={filter} 
               />
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       </TooltipProvider>
 

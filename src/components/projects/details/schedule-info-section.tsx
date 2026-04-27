@@ -107,6 +107,32 @@ export function ScheduleInfoSection({ project, users, canEdit, onUpdate }: Sched
                 className="flex-1"
              />
           )}
+
+          <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/50">
+            <span className="text-sm font-medium text-muted-foreground">Hora de inicio</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {(typeof project.startTime === 'string' && project.startTime.length > 0) ? 'Aplica' : 'No aplica'}
+              </span>
+              <Switch 
+                checked={typeof project.startTime === 'string' && project.startTime.length > 0} 
+                onCheckedChange={(checked) => onUpdate({ startTime: checked ? '08:00' : '' })}
+                disabled={!canEdit}
+                className="scale-90"
+              />
+            </div>
+          </div>
+          
+          {(typeof project.startTime === 'string' && project.startTime.length > 0) && (
+            <InlineEditField
+              label="Hora"
+              value={project.startTime}
+              onSave={(val) => onUpdate({ startTime: val })}
+              canEdit={canEdit}
+              type="time"
+              className="flex-1"
+            />
+          )}
         </div>
       </section>
 

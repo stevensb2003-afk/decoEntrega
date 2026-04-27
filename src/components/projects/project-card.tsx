@@ -5,7 +5,7 @@ import { Project, User } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { ProjectStatusBadge } from './status-badge';
-import { CalendarDays, User2, Phone, HardHat, ArrowRight } from 'lucide-react';
+import { CalendarDays, User2, Phone, HardHat, ArrowRight, Clock } from 'lucide-react';
 import { format, isSameDay, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Timestamp } from 'firebase/firestore';
@@ -98,6 +98,12 @@ export function ProjectCard({ project, installers }: ProjectCardProps) {
           <div className="flex items-center gap-2">
             <CalendarDays className="h-3.5 w-3.5 shrink-0" />
             <span>{formatProjectDates(project)}</span>
+            {project.startTime && (
+              <>
+                <Clock className="h-3 w-3 shrink-0 ml-1 text-indigo-500" />
+                <span className="font-semibold text-indigo-600">{project.startTime}</span>
+              </>
+            )}
           </div>
 
           {/* Installers */}

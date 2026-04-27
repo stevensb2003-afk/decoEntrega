@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Pencil, Check, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ interface InlineEditFieldProps {
   displayValue?: string;
   onSave: (newValue: string) => void;
   label?: string;
-  type?: 'text' | 'number' | 'date' | 'tel' | 'textarea';
+  type?: 'text' | 'number' | 'date' | 'tel' | 'textarea' | 'time';
   canEdit?: boolean;
   className?: string;
   inputClassName?: string;
@@ -31,10 +31,17 @@ export function InlineEditField({
 }: InlineEditFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setInputValue(value);
   }, [value]);
+
+  useEffect(() => {
+    if (isEditing && type === 'time' && inputRef.current) {
+      try { inputRef.current.showPicker(); } catch { /* not supported in all browsers */ }
+    }
+  }, [isEditing, type]);
 
   const handleSave = () => {
     if (inputValue !== value) {
@@ -84,6 +91,7 @@ export function InlineEditField({
              />
           ) : (
             <Input
+              ref={inputRef}
               type={type}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
