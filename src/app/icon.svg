@@ -1,9 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="6" fill="#4f46e5"/>
-  <g transform="translate(4.5, 6)">
-    <path d="M10 15h4V4H2v11h3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M18 15h2v-2.8a3.3 3.3 0 0 0-.97-2.36L17.5 8H14v7h4Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="11.5" cy="15.5" r="1.5" stroke="white" stroke-width="1.5"/>
-    <circle cx="5.5" cy="15.5" r="1.5" stroke="white" stroke-width="1.5"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck">
+  <path d="M10 17h4V5H2v12h3"/>
+  <path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h6Z"/>
+  <path d="M14 17.5a2.5 2.5 0 0 1-5 0"/>
+  <path d="M6 17.5a2.5 2.5 0 0 1-5 0"/>
 </svg>
