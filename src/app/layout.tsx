@@ -9,7 +9,8 @@ export const metadata: Metadata = {
   description: 'Efficient Delivery Management',
   manifest: '/manifest.json',
   icons: {
-    icon: '/icon.svg',
+    icon: '/icons/icon-192.png',
+    apple: '/apple-touch-icon.png',
   },
 };
 
