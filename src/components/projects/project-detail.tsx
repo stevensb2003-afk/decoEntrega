@@ -36,13 +36,16 @@ export function ProjectDetail({ project, users }: ProjectDetailProps) {
   const router = useRouter();
 
   const userRoles = currentUser?.roles ?? (currentUser?.role ? [currentUser.role] : []);
+  const isCancelled = project.status === 'Cancelado';
   const isAdmin = userRoles.includes('admin');
   const isVendedor = userRoles.includes('vendedor');
   const isInstalador = userRoles.includes('instalador');
   const isCreator = currentUser?.id === project.ownerId;
-  const canEdit = isAdmin || (isVendedor && isCreator);
-  const canChangeStatus = isAdmin || isVendedor || isInstalador;
-  const canEditMaterials = isAdmin || isVendedor;
+  const canEdit = (isAdmin || (isVendedor && isCreator)) && !isCancelled;
+  const canChangeStatus = isCancelled 
+    ? (isAdmin || (isVendedor && isCreator)) 
+    : (isAdmin || isVendedor || isInstalador);
+  const canEditMaterials = (isAdmin || isVendedor) && !isCancelled;
 
   const handleUpdate = (update: Partial<Project>) => {
     updateProject(project.id, update);
@@ -114,7 +117,7 @@ export function ProjectDetail({ project, users }: ProjectDetailProps) {
             {(isAdmin || isVendedor || isInstalador) && (
               <FinanceInfoSection 
                 project={project} 
-                canEdit={isAdmin || isVendedor} 
+                canEdit={(isAdmin || isVendedor) && !isCancelled} 
                 isInstalador={isInstalador} 
                 onUpdate={handleUpdate} 
               />
@@ -150,7 +153,7 @@ export function ProjectDetail({ project, users }: ProjectDetailProps) {
           <TabsContent value="tasks" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <TaskList
               tasks={project.tasks ?? []}
-              canEdit={canChangeStatus}
+              canEdit={canEdit}
               currentUserId={currentUser?.id ?? ''}
               currentUserName={currentUser?.name ?? 'Usuario'}
               onToggleTask={(taskId, isCompleted, completedBy, completedByName, completedAt) => {
@@ -169,7 +172,7 @@ export function ProjectDetail({ project, users }: ProjectDetailProps) {
           <TabsContent value="extra-costs" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <ExtraCostsList
               extraCosts={project.extraCosts ?? []}
-              canEdit={isAdmin || isVendedor || isInstalador}
+              canEdit={(isAdmin || isVendedor || isInstalador) && !isCancelled}
               currentUserId={currentUser?.id ?? ''}
               onAddExtraCost={(cost) => handleUpdate({ extraCosts: [...(project.extraCosts ?? []), cost] })}
               onRemoveExtraCost={(costId) => handleUpdate({ extraCosts: project.extraCosts?.filter((c) => c.id !== costId) ?? [] })}
@@ -186,6 +189,7 @@ export function ProjectDetail({ project, users }: ProjectDetailProps) {
                 notes={project.notes ?? []}
                 currentUserId={currentUser?.id ?? ''}
                 currentUserName={currentUser?.name ?? 'Usuario'}
+                canEdit={!isCancelled}
                 onAddNote={(note) => handleUpdate({ notes: [...(project.notes ?? []), note] })}
               />
             </section>

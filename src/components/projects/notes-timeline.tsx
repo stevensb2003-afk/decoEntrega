@@ -12,10 +12,11 @@ interface NotesTimelineProps {
   notes: ProjectNote[];
   currentUserId: string;
   currentUserName: string;
+  canEdit?: boolean;
   onAddNote: (note: ProjectNote) => void;
 }
 
-export function NotesTimeline({ notes, currentUserId, currentUserName, onAddNote }: NotesTimelineProps) {
+export function NotesTimeline({ notes, currentUserId, currentUserName, canEdit = true, onAddNote }: NotesTimelineProps) {
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -52,29 +53,31 @@ export function NotesTimeline({ notes, currentUserId, currentUserName, onAddNote
   return (
     <div className="space-y-5">
       {/* Input */}
-      <div className="space-y-2">
-        <Textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Escribe una nota o comentario sobre el proyecto…"
-          rows={3}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit();
-          }}
-        />
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">Ctrl+Enter para enviar</p>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleSubmit}
-            disabled={!content.trim() || submitting}
-          >
-            <Send className="h-3.5 w-3.5 mr-1.5" />
-            Publicar nota
-          </Button>
+      {canEdit && (
+        <div className="space-y-2">
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Escribe una nota o comentario sobre el proyecto…"
+            rows={3}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit();
+            }}
+          />
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">Ctrl+Enter para enviar</p>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSubmit}
+              disabled={!content.trim() || submitting}
+            >
+              <Send className="h-3.5 w-3.5 mr-1.5" />
+              Publicar nota
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Timeline */}
       {sorted.length === 0 ? (

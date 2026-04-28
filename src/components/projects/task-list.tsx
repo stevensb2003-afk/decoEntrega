@@ -124,6 +124,7 @@ export function TaskList({
                   id={`task-${task.id}`}
                   checked={task.isCompleted}
                   onCheckedChange={() => handleToggle(task)}
+                  disabled={!canEdit}
                   className="mt-0.5 shrink-0"
                 />
                 <div className="flex-1 min-w-0">
