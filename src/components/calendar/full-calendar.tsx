@@ -593,36 +593,36 @@ export function FullCalendar() {
           {/* ── Header ── */}
           <div className="flex flex-col gap-4 mb-4">
             
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2 bg-muted p-1 rounded-lg shrink-0">
                 <Button
                   variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className={cn("h-8 px-3 text-xs gap-2", viewMode === 'calendar' && "bg-background shadow-sm")}
+                  className={cn("flex-1 h-8 px-3 text-xs gap-2", viewMode === 'calendar' && "bg-background shadow-sm")}
                   onClick={() => setViewMode('calendar')}
                 >
-                  <CalendarIcon className="h-4 w-4" />
-                  Calendario
+                  <CalendarIcon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Calendario</span>
                 </Button>
                 <Button
                   variant={viewMode === 'agenda' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className={cn("h-8 px-3 text-xs gap-2", viewMode === 'agenda' && "bg-background shadow-sm")}
+                  className={cn("flex-1 h-8 px-3 text-xs gap-2", viewMode === 'agenda' && "bg-background shadow-sm")}
                   onClick={() => setViewMode('agenda')}
                 >
-                  <List className="h-4 w-4" />
-                  Agenda
+                  <List className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Agenda</span>
                 </Button>
               </div>
 
-              <div className="flex items-center gap-1 shrink-0">
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={handlePrev}>
+              <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                <Button variant="outline" size="icon" className="h-8 w-12 sm:w-8 shrink-0" onClick={handlePrev}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" className="h-8 px-3 text-xs font-medium" onClick={() => setCurrentDate(new Date())}>
+                <Button variant="outline" className="flex-1 sm:flex-none h-8 px-4 text-xs font-medium" onClick={() => setCurrentDate(new Date())}>
                   Hoy
                 </Button>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleNext}>
+                <Button variant="outline" size="icon" className="h-8 w-12 sm:w-8 shrink-0" onClick={handleNext}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>

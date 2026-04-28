@@ -42,6 +42,7 @@ export function ProjectDetail({ project, users }: ProjectDetailProps) {
   const isInstalador = userRoles.includes('instalador');
   const isCreator = currentUser?.id === project.ownerId;
   const canEdit = (isAdmin || (isVendedor && isCreator)) && !isCancelled;
+  const canManageTasks = (isAdmin || (isVendedor && isCreator) || isInstalador) && !isCancelled;
   const canChangeStatus = isCancelled 
     ? (isAdmin || (isVendedor && isCreator)) 
     : (isAdmin || isVendedor || isInstalador);
@@ -153,7 +154,7 @@ export function ProjectDetail({ project, users }: ProjectDetailProps) {
           <TabsContent value="tasks" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <TaskList
               tasks={project.tasks ?? []}
-              canEdit={canEdit}
+              canEdit={canManageTasks}
               currentUserId={currentUser?.id ?? ''}
               currentUserName={currentUser?.name ?? 'Usuario'}
               onToggleTask={(taskId, isCompleted, completedBy, completedByName, completedAt) => {
