@@ -28,7 +28,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Source+Code+Pro:wght@400;600&display=swap"
           rel="stylesheet"
         />
-        <meta name="theme-color" content="#A1D8EB" />
+        <meta name="theme-color" content="#4f46e5" />
       </head>
       <body className="font-body">
         <Providers>
