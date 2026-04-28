@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Project, ProjectStatus, ProjectTask, ProjectMaterial, ProjectNote, User } from '@/lib/types';
+import { Project, ProjectTask, ProjectMaterial, ProjectNote, User } from '@/lib/types';
 import { useAppContext } from '@/contexts/app-context';
 import { useAuth } from '@/hooks/use-auth';
 import { TaskList } from './task-list';
@@ -10,14 +10,11 @@ import { NotesTimeline } from './notes-timeline';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
-  User2, CheckSquare, Package, MessageSquare, Trash2, Lock
+  User2, CheckSquare, Package, MessageSquare, Trash2
 } from 'lucide-react';
 import { ProjectHeaderInfo } from './details/project-header-info';
 import { CustomerInfoSection } from './details/customer-info-section';
@@ -61,20 +58,12 @@ export function ProjectDetail({ project, users }: ProjectDetailProps) {
   const extraCostsCount = project.extraCosts?.length ?? 0;
   const noteCount = project.notes?.length ?? 0;
 
-  // Bloqueo de "Completado" si hay saldo pendiente al instalador
-  const totalPaid = (project.payments ?? []).reduce((s, p) => s + p.amount, 0);
-  const totalExtraCosts = (project.extraCosts ?? []).reduce((s, c) => s + c.amount, 0);
-  const saldoPendiente = (project.costoInst ?? 0) + totalExtraCosts - totalPaid;
-  const isCompletionBlocked = saldoPendiente > 0;
-
   return (
     <div className="flex flex-col min-h-screen">
       <ProjectHeaderInfo 
         project={project}
         canEdit={canEdit}
         canChangeStatus={canChangeStatus}
-        isCompletionBlocked={isCompletionBlocked}
-        saldoPendiente={saldoPendiente}
         onUpdate={handleUpdate}
       />
 
@@ -115,37 +104,6 @@ export function ProjectDetail({ project, users }: ProjectDetailProps) {
           </TabsList>
 
           <TabsContent value="main" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            {/* Mobile status changer */}
-            {canChangeStatus && (
-              <div className="sm:hidden">
-                <Select value={project.status} onValueChange={(v) => handleUpdate({ status: v as any })}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {['Pendiente', 'En Progreso', 'Completado', 'Cancelado'].map((s) => (
-                      <SelectItem
-                        key={s}
-                        value={s}
-                        disabled={s === 'Completado' && isCompletionBlocked}
-                        className={s === 'Completado' && isCompletionBlocked ? 'opacity-40' : ''}
-                      >
-                        <span className="flex items-center gap-2">
-                          {s === 'Completado' && isCompletionBlocked && <Lock className="h-3 w-3 text-muted-foreground" />}
-                          {s}
-                          {s === 'Completado' && isCompletionBlocked && (
-                            <span className="text-[10px] text-muted-foreground">
-                              (Saldo: ₡{saldoPendiente.toLocaleString('es-CR')})
-                            </span>
-                          )}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             <CustomerInfoSection project={project} canEdit={canEdit} onUpdate={handleUpdate} />
             <DescriptionSection project={project} canEdit={canEdit} onUpdate={handleUpdate} />
             <LocationInfoSection project={project} canEdit={canEdit} onUpdate={handleUpdate} />

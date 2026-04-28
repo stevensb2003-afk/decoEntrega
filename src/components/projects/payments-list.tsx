@@ -19,7 +19,8 @@ interface PaymentsListProps {
 const emptyInput = { 
   amount: '', 
   date: new Date().toISOString().split('T')[0], 
-  description: '' 
+  description: '',
+  transferNumber: '',
 };
 
 export function PaymentsList({ payments, canEdit, onAddPayment, onRemovePayment }: PaymentsListProps) {
@@ -35,6 +36,7 @@ export function PaymentsList({ payments, canEdit, onAddPayment, onRemovePayment 
       amount: amt,
       date: input.date,
       description: input.description.trim(),
+      transferNumber: input.transferNumber.trim() || undefined,
       createdAt: new Date().toISOString()
     });
     setInput(emptyInput);
@@ -63,21 +65,25 @@ export function PaymentsList({ payments, canEdit, onAddPayment, onRemovePayment 
         </div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden">
-          <div className="grid grid-cols-[100px_1fr_100px_40px] gap-2 px-4 py-2 bg-muted/50 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b">
+          <div className="grid grid-cols-[100px_1fr_auto_100px_40px] gap-2 px-4 py-2 bg-muted/50 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b">
             <span>Fecha</span>
             <span>Detalle</span>
+            <span>N° Transf.</span>
             <span className="text-right">Monto</span>
             <span />
           </div>
 
           <ul className="divide-y divide-border">
             {payments.map((p) => (
-              <li key={p.id} className="group grid grid-cols-[100px_1fr_100px_40px] gap-2 px-4 py-2.5 items-center hover:bg-muted/30 transition-colors">
+              <li key={p.id} className="group grid grid-cols-[100px_1fr_auto_100px_40px] gap-2 px-4 py-2.5 items-center hover:bg-muted/30 transition-colors">
                 <span className="text-xs text-muted-foreground tabular-nums">
                   {p.date}
                 </span>
                 <span className="text-xs font-medium">
                   {p.description || 'Adelanto de mano de obra'}
+                </span>
+                <span className="text-xs text-muted-foreground font-mono">
+                  {p.transferNumber ? `#${p.transferNumber}` : '—'}
                 </span>
                 <span className="text-xs font-bold tabular-nums text-right text-green-600">
                   ₡{p.amount.toLocaleString('es-CR')}
@@ -135,6 +141,15 @@ export function PaymentsList({ payments, canEdit, onAddPayment, onRemovePayment 
                 className="h-8 text-sm"
                 value={input.description}
                 onChange={(e) => setInput((p) => ({ ...p, description: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label className="text-[10px] uppercase text-muted-foreground">N° de Transferencia (opcional)</Label>
+              <Input
+                placeholder="Ej: 123456789"
+                className="h-8 text-sm font-mono"
+                value={input.transferNumber}
+                onChange={(e) => setInput((p) => ({ ...p, transferNumber: e.target.value }))}
               />
             </div>
           </div>

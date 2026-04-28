@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Project, ProjectStatuses, User } from '@/lib/types';
 import { ProjectCard } from './project-card';
-import { ClipboardList, Filter, Search, X, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { ClipboardList, Filter, Search, X, Clock, CheckCircle2, XCircle, Wrench } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -29,7 +29,7 @@ export function ProjectList({ projects, users, installers }: ProjectListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(ALL_STATUSES);
   const [installerFilter, setInstallerFilter] = useState<string>(ALL_INSTALLERS);
-  const [currentTab, setCurrentTab] = useState<'active' | 'completed' | 'cancelled'>('active');
+  const [currentTab, setCurrentTab] = useState<'active' | 'installed' | 'completed' | 'cancelled'>('active');
 
   const hasActiveFilters =
     searchQuery.trim() !== '' ||
@@ -40,7 +40,8 @@ export function ProjectList({ projects, users, installers }: ProjectListProps) {
     const q = searchQuery.trim().toLowerCase();
     return projects.filter((p) => {
       const matchesTab = 
-        currentTab === 'active' ? (p.status === 'Pendiente' || p.status === 'En Progreso') :
+        currentTab === 'active'    ? (p.status === 'Pendiente' || p.status === 'En Progreso') :
+        currentTab === 'installed' ? p.status === 'Instalado' :
         currentTab === 'completed' ? p.status === 'Completado' :
         p.status === 'Cancelado';
 
@@ -78,10 +79,14 @@ export function ProjectList({ projects, users, installers }: ProjectListProps) {
         }} 
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="active" className="flex items-center gap-1.5 sm:gap-2">
             <Clock className="w-4 h-4" />
             <span className="truncate">Activos</span>
+          </TabsTrigger>
+          <TabsTrigger value="installed" className="flex items-center gap-1.5 sm:gap-2">
+            <Wrench className="w-4 h-4" />
+            <span className="truncate">Instalados</span>
           </TabsTrigger>
           <TabsTrigger value="completed" className="flex items-center gap-1.5 sm:gap-2">
             <CheckCircle2 className="w-4 h-4" />

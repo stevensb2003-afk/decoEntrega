@@ -8,6 +8,7 @@ import { Timestamp } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
 import { differenceInDays, format, fromUnixTime } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { calcProjectFinancials } from '@/lib/project-finance-utils';
 import {
   BarChart,
   Bar,
@@ -41,6 +42,7 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
     let validDurationCount = 0;
     let totalRevenue = 0;
     let totalInstallerCost = 0;
+    let totalPendientePagar = 0;
 
     // Monthly data for Bar Chart
     const monthlyDataMap: Record<string, number> = {};
@@ -49,14 +51,20 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
     const statusDataMap: Record<string, number> = {
       'Pendiente': 0,
       'En Progreso': 0,
+      'Instalado': 0,
       'Completado': 0,
       'Cancelado': 0
     };
 
     projects.forEach(p => {
-      const extrasTotal = p.extraCosts?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
-      totalRevenue += (p.costoTotal || 0) + extrasTotal;
-      totalInstallerCost += (p.costoInst || 0) + extrasTotal;
+      // Excluir cancelados de todas las métricas financieras
+      if (p.status === 'Cancelado') return;
+
+      const fin = calcProjectFinancials(p);
+
+      totalRevenue += fin.totalRevenue;
+      totalInstallerCost += fin.instaladorTotal;
+      totalPendientePagar += Math.max(0, fin.instaladorPendiente);
 
       // Status Distribution
       if (statusDataMap[p.status] !== undefined) {
@@ -126,7 +134,7 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
       statusData,
       totalRevenue,
       totalInstallerCost,
-      grossMargin,
+      totalPendientePagar,
       profitPercentage
     };
   }, [projects]);
@@ -194,7 +202,7 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Costos Instalación</CardTitle>
+                <CardTitle className="text-sm font-medium">Pago a Instaladores</CardTitle>
                 <DollarSign className="h-4 w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
@@ -203,12 +211,12 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Margen Bruto</CardTitle>
-                <Wallet className="h-4 w-4 text-indigo-500" />
+                <CardTitle className="text-sm font-medium">Pendiente de Pagar</CardTitle>
+                <Wallet className="h-4 w-4 text-red-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">₡{metrics.grossMargin.toLocaleString('es-CR')}</div>
-                <p className="text-xs text-muted-foreground">Ingresos - Costos Instalación</p>
+                <div className="text-2xl font-bold text-red-500">₡{metrics.totalPendientePagar.toLocaleString('es-CR')}</div>
+                <p className="text-xs text-muted-foreground">Proyectos activos (excl. Cancelados)</p>
               </CardContent>
             </Card>
             <Card>

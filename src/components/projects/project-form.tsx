@@ -74,7 +74,7 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
   const [tasks, setTasks] = useState<Omit<ProjectTask, 'createdAt'>[]>([]);
   const [materials, setMaterials] = useState<Omit<ProjectMaterial, 'createdAt'>[]>([]);
   const [taskInput, setTaskInput] = useState('');
-  const [materialInput, setMaterialInput] = useState<{name: string, quantity: string, unit: string}>({ name: '', quantity: '1', unit: 'm²' });
+  const [materialInput, setMaterialInput] = useState<{ name: string, quantity: string, unit: string }>({ name: '', quantity: '1', unit: 'm²' });
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -168,8 +168,18 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
       payments: [],
       notes: [],
     };
-    addProject(payload, nextProjectId);
-    router.push('/projects');
+    try {
+      addProject(payload, nextProjectId);
+      router.push('/projects');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveClick = async () => {
+    const isValid = await form.trigger();
+    if (!isValid) return;
+    form.handleSubmit(onSubmit)();
   };
 
   return (
@@ -260,48 +270,26 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
             Fechas y Hora de Inicio
           </h2>
 
-          <FormField control={form.control} name="isOneDay" render={({ field }) => (
-            <FormItem className="flex items-center gap-3">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  id="isOneDay"
-                />
-              </FormControl>
-              <Label htmlFor="isOneDay" className="cursor-pointer font-normal">
-                Proyecto de 1 solo día
-              </Label>
-            </FormItem>
-          )} />
-
-          {/* Date row + start time */}
-          <div className={cn('grid gap-4', isOneDay ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3')}>
-            <FormField control={form.control} name="startDate" render={({ field }) => (
-              <FormItem>
-                <FormLabel>{isOneDay ? 'Fecha' : 'Fecha de Inicio'}</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-            {!isOneDay && (
-              <FormField control={form.control} name="endDate" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fecha de Cierre</FormLabel>
+          <div className="space-y-5 pt-2">
+            {/* Fila 1: Checkboxes */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-center">
+              <FormField control={form.control} name="isOneDay" render={({ field }) => (
+                <FormItem className="flex items-center gap-3 space-y-0">
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      id="isOneDay"
+                    />
                   </FormControl>
-                  <FormMessage />
+                  <Label htmlFor="isOneDay" className="cursor-pointer font-medium text-sm text-sky-700">
+                    Proyecto de 1 solo día
+                  </Label>
                 </FormItem>
               )} />
-            )}
 
-            <div className="space-y-3">
               <FormField control={form.control} name="applyStartTime" render={({ field }) => (
-                <FormItem className="flex items-center gap-3 space-y-0 pt-2">
+                <FormItem className="flex items-center gap-3 space-y-0">
                   <FormControl>
                     <Checkbox
                       checked={field.value}
@@ -309,27 +297,75 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
                       id="applyStartTime"
                     />
                   </FormControl>
-                  <Label htmlFor="applyStartTime" className="cursor-pointer font-normal text-sm">
+                  <Label htmlFor="applyStartTime" className="cursor-pointer font-medium text-sm text-sky-700">
                     Aplica hora de inicio
                   </Label>
                 </FormItem>
               )} />
+            </div>
 
-              {form.watch('applyStartTime') && (
+            {/* Fila 2: Inputs principales (Fecha Inicio | Hora Exacta) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-start">
+              <FormField control={form.control} name="startDate" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center h-5">
+                    {isOneDay ? 'Fecha' : 'Fecha de Inicio'}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      {...field}
+                      className="cursor-pointer"
+                      onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              {form.watch('applyStartTime') ? (
                 <FormField control={form.control} name="startTime" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-1.5 text-xs">
-                      <Clock className="h-3.5 w-3.5" />
+                    <FormLabel className="flex items-center gap-1.5 h-5">
+                      <Clock className="h-4 w-4" />
                       Hora Exacta
                     </FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <Input
+                        type="time"
+                        {...field}
+                        className="cursor-pointer"
+                        onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
+              ) : (
+                <div className="hidden sm:block" />
               )}
             </div>
+
+            {/* Fila 3: Fecha de Cierre (solo si no es 1 solo día) */}
+            {!isOneDay && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-start">
+                <FormField control={form.control} name="endDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fecha de Cierre</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        {...field}
+                        className="cursor-pointer"
+                        onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <div className="hidden sm:block" />
+              </div>
+            )}
           </div>
         </section>
 
@@ -356,16 +392,16 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
             <FormField control={form.control} name="costoTotal" render={({ field }) => (
               <FormItem>
-                <FormLabel>Costo Total Proyecto</FormLabel>
+                <FormLabel>Costo Total Instalación</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-sm font-semibold text-muted-foreground">₡</span>
-                    <Input 
-                      type="number" 
-                      step="0.01" 
-                      min="0" 
-                      className="pl-7" 
-                      placeholder="0" 
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="pl-7"
+                      placeholder="0"
                       {...field}
                       value={field.value ?? ''}
                       onFocus={(e) => e.target.select()}
@@ -378,16 +414,16 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
 
             <FormField control={form.control} name="costoInst" render={({ field }) => (
               <FormItem>
-                <FormLabel>Mano de Obra</FormLabel>
+                <FormLabel>Pago a Instaladores</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-sm font-semibold text-muted-foreground">₡</span>
-                    <Input 
-                      type="number" 
-                      step="0.01" 
-                      min="0" 
-                      className="pl-7" 
-                      placeholder="0" 
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="pl-7"
+                      placeholder="0"
                       {...field}
                       value={field.value ?? ''}
                       onFocus={(e) => e.target.select()}
@@ -511,7 +547,12 @@ export function ProjectForm({ installers, nextProjectId }: ProjectFormProps) {
           <Button type="button" variant="outline" onClick={() => router.push('/projects')} className="flex-1 sm:flex-none">
             Cancelar
           </Button>
-          <Button type="submit" disabled={isSubmitting} className="flex-1 sm:flex-none sm:ml-auto">
+          <Button
+            type="button"
+            onClick={handleSaveClick}
+            disabled={isSubmitting}
+            className="flex-1 sm:flex-none sm:ml-auto"
+          >
             {isSubmitting ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Guardando…</>
             ) : (

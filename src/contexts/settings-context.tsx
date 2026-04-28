@@ -38,6 +38,16 @@ const baseProjectColumns: Omit<ProjectCSVExportColumn, 'enabled'>[] = [
     { id: 'endDate', label: 'Fecha de Fin', group: 'general' },
     { id: 'createdAt', label: 'Fecha de Creación', group: 'general' },
     { id: 'updatedAt', label: 'Última Actualización', group: 'general' },
+    { id: 'costoTotal', label: 'Costo Total (Proyecto)', group: 'finanzas' },
+    { id: 'costoInst', label: 'Costo Instalación Base', group: 'finanzas' },
+    { id: 'extrasTotal', label: 'Total Extras', group: 'finanzas' },
+    { id: 'extrasAlCliente', label: 'Extras Cobrados al Cliente', group: 'finanzas' },
+    { id: 'extrasReembolso', label: 'Extras Reembolso Instalador', group: 'finanzas' },
+    { id: 'extrasEmpresa', label: 'Extras Absorbidos por Empresa', group: 'finanzas' },
+    { id: 'instaladorTotal', label: 'Total a Pagar Instalador', group: 'finanzas' },
+    { id: 'instaladorAdelantado', label: 'Adelantos al Instalador', group: 'finanzas' },
+    { id: 'instaladorPendiente', label: 'Pendiente de Pagar Instalador', group: 'finanzas' },
+    { id: 'totalRevenue', label: 'Ingreso Total del Proyecto', group: 'finanzas' },
 ];
 
 const defaultConfig: AppConfig = {

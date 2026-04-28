@@ -289,6 +289,10 @@ const CSVExportSettings = ({ localConfig, setLocalConfig, type = 'tickets' }: { 
                 { id: 'ownerId', label: 'ID Vendedor', group: 'general' },
                 { id: 'installerIds', label: 'IDs Instaladores', group: 'general' },
                 { id: 'installationDate', label: 'Fecha Instalación', group: 'general' },
+                { id: 'costoInst', label: 'Pago a Instaladores', group: 'general' },
+                { id: 'adelantadoTotal', label: 'Adelanto', group: 'general' },
+                { id: 'ingresoTotal', label: 'Ingreso Total', group: 'general' },
+                { id: 'pendientePagar', label: 'Pendiente de Pagar', group: 'general' },
                 { id: 'createdAt', label: 'Fecha de Creación', group: 'general' },
             ];
         }

@@ -61,9 +61,9 @@ export type BlockedDate = {
   reason: string;
 }
 
-export type ProjectStatus = 'Pendiente' | 'En Progreso' | 'Completado' | 'Cancelado';
+export type ProjectStatus = 'Pendiente' | 'En Progreso' | 'Instalado' | 'Completado' | 'Cancelado';
 
-export const ProjectStatuses: ProjectStatus[] = ['Pendiente', 'En Progreso', 'Completado', 'Cancelado'];
+export const ProjectStatuses: ProjectStatus[] = ['Pendiente', 'En Progreso', 'Instalado', 'Completado', 'Cancelado'];
 
 export const InstallationTypes = [
   'Panel WPC Interior',
@@ -110,6 +110,7 @@ export type ProjectPayment = {
   amount: number;
   date: string;
   description?: string;
+  transferNumber?: string;
   createdAt: FieldValue | string;
 };
 
@@ -117,6 +118,8 @@ export type ExtraCost = {
   id: string;
   description: string;
   amount: number; // In CRC
+  chargedToClient: boolean;    // ¿Se factura al cliente? (para reportes de ingreso total)
+  paidByInstaller: boolean;    // ¿El instalador adelantó este dinero? → empresa le debe reembolso
   createdAt: FieldValue | string;
   createdBy: string;
 };
@@ -184,9 +187,9 @@ export type CSVExportColumn = {
 }
 
 export type ProjectCSVExportColumn = {
-    id: keyof Project | 'ownerName' | 'installerNames';
+    id: keyof Project | 'ownerName' | 'installerNames' | 'extrasTotal' | 'extrasAlCliente' | 'extrasReembolso' | 'extrasEmpresa' | 'instaladorTotal' | 'instaladorAdelantado' | 'instaladorPendiente' | 'totalRevenue';
     label: string;
-    group: 'general' | 'projectForm';
+    group: 'general' | 'projectForm' | 'finanzas';
 }
 
 export interface AppConfig {

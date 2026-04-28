@@ -14,6 +14,10 @@ export const PROJECT_STATUS_STYLING: Record<ProjectStatus, StatusStyling> = {
     badge: 'bg-indigo-100 text-indigo-700 border-indigo-300 hover:bg-indigo-200 border',
     border: 'border-indigo-500',
   },
+  'Instalado': {
+    badge: 'bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-200 border',
+    border: 'border-amber-500',
+  },
   'Completado': {
     badge: 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-200 border',
     border: 'border-emerald-500',

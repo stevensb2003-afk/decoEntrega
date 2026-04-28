@@ -7,6 +7,7 @@ import { format, fromUnixTime } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { useAppContext } from '@/contexts/app-context';
 import { useAuth } from '@/hooks/use-auth';
+import { calcProjectFinancials } from '@/lib/project-finance-utils';
 
 const DateCell = ({ date }: { date: any }) => {
   if (!date) return <span className="text-muted-foreground">-</span>;
@@ -83,14 +84,28 @@ export const projectColumns: ColumnDef<Project>[] = [
     cell: ({ row }) => <FinanceCell amount={row.original.costoInst} />,
   },
   {
-    accessorKey: 'adelantoInst',
+    id: 'adelantadoTotal',
     header: 'Adelanto',
-    cell: ({ row }) => <FinanceCell amount={row.original.adelantoInst} />,
+    cell: ({ row }) => {
+      const adelantado = row.original.payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+      return <FinanceCell amount={adelantado} />
+    },
   },
   {
-    accessorKey: 'costoTotal',
+    id: 'ingresoTotal',
     header: 'Ingreso Total',
-    cell: ({ row }) => <FinanceCell amount={row.original.costoTotal} isRestricted={true} />,
+    cell: ({ row }) => {
+      const { totalRevenue } = calcProjectFinancials(row.original);
+      return <FinanceCell amount={totalRevenue} isRestricted={true} />
+    },
+  },
+  {
+    id: 'pendientePagar',
+    header: 'Pendiente Pagar',
+    cell: ({ row }) => {
+      const { instaladorPendiente } = calcProjectFinancials(row.original);
+      return <FinanceCell amount={Math.max(0, instaladorPendiente)} isRestricted={true} />
+    },
   },
   {
     accessorKey: 'startDate',

@@ -9,6 +9,7 @@ import { CalendarDays, User2, Phone, HardHat, ArrowRight, Clock } from 'lucide-r
 import { format, isSameDay, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Timestamp } from 'firebase/firestore';
+import { calcProjectFinancials } from '@/lib/project-finance-utils';
 
 interface ProjectCardProps {
   project: Project;
@@ -56,10 +57,13 @@ export function ProjectCard({ project, installers }: ProjectCardProps) {
   const isVendedor = userRoles.includes('vendedor');
   const canViewTotal = isAdmin || isVendedor;
 
-  // Cálculos financieros
-  const totalExtraCosts = project.extraCosts?.reduce((sum, c) => sum + c.amount, 0) ?? 0;
-  const totalPaid = project.payments?.reduce((sum, p) => sum + p.amount, 0) ?? 0;
-  const saldoPendiente = (project.costoInst ?? 0) + totalExtraCosts - totalPaid;
+  // Cálculos financieros centralizados
+  const {
+    extrasTotal,
+    instaladorAdelantado,
+    instaladorPendiente,
+    totalRevenue,
+  } = calcProjectFinancials(project);
 
   return (
     <Link
@@ -144,36 +148,36 @@ export function ProjectCard({ project, installers }: ProjectCardProps) {
 
             {/* Pendiente */}
             <div className="flex flex-col text-right">
-              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Pendiente</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Pendiente Pagar</span>
               <span className={cn(
                 "font-bold text-sm",
-                saldoPendiente > 0 ? "text-emerald-600" : "text-muted-foreground"
+                instaladorPendiente > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
               )}>
-                ₡{saldoPendiente.toLocaleString()}
+                ₡{instaladorPendiente.toLocaleString()}
               </span>
             </div>
 
             {/* Extra Costs (Solo si hay) */}
-            {totalExtraCosts > 0 && (
+            {extrasTotal > 0 && (
               <div className="flex flex-col">
                 <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Extras</span>
-                <span className="font-semibold text-xs text-amber-600">₡{totalExtraCosts.toLocaleString()}</span>
+                <span className="font-semibold text-xs text-amber-600">₡{extrasTotal.toLocaleString()}</span>
               </div>
             )}
 
             {/* Adelantos (Solo si hay) */}
-            {totalPaid > 0 && (
+            {instaladorAdelantado > 0 && (
               <div className="flex flex-col text-right">
                 <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Adelantado</span>
-                <span className="font-semibold text-xs text-orange-600">₡{totalPaid.toLocaleString()}</span>
+                <span className="font-semibold text-xs text-emerald-600 dark:text-emerald-400">₡{instaladorAdelantado.toLocaleString()}</span>
               </div>
             )}
           </div>
 
           {canViewTotal && (
             <div className="pt-2 border-t border-dashed border-border/40 flex items-center justify-between text-[11px]">
-              <span className="text-muted-foreground font-medium italic">Valor Contrato:</span>
-              <span className="font-bold text-foreground/80">₡{project.costoTotal?.toLocaleString() ?? '0'}</span>
+              <span className="text-muted-foreground font-medium italic">Ingreso Total:</span>
+              <span className="font-bold text-emerald-700 dark:text-emerald-300">₡{totalRevenue.toLocaleString()}</span>
             </div>
           )}
         </div>

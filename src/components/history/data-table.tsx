@@ -48,6 +48,7 @@ import { addDays, format, startOfDay, endOfDay, startOfWeek, endOfMonth, startOf
 import { es } from 'date-fns/locale';
 import { FieldValue, Timestamp } from 'firebase/firestore';
 import { useSettingsContext } from '@/contexts/settings-context';
+import { calcProjectFinancials } from '@/lib/project-finance-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { cn } from '@/lib/utils';
 import { HistoryMetrics } from '@/components/history/history-metrics';
@@ -288,6 +289,25 @@ export function DataTable<TData extends RowData, TValue>({
             } else if (col.id === 'installerIds') {
                 const installers = item.installerIds as string[] | undefined;
                 value = installers?.map(id => users.find(u => u.id === id)?.name || id).join(' | ') || '';
+            } else if (col.id === 'adelantadoTotal' || col.id === 'instaladorAdelantado') {
+                value = item.payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
+            } else if (['ingresoTotal', 'totalRevenue', 'extrasTotal', 'extrasAlCliente',
+                        'extrasReembolso', 'extrasEmpresa', 'instaladorTotal',
+                        'instaladorPendiente', 'pendientePagar'].includes(String(col.id))) {
+                const fin = calcProjectFinancials(item);
+                const map: Record<string, number> = {
+                  ingresoTotal: fin.totalRevenue,
+                  totalRevenue: fin.totalRevenue,
+                  extrasTotal: fin.extrasTotal,
+                  extrasAlCliente: fin.extrasChargedToClient,
+                  extrasReembolso: fin.extrasPaidByInstaller,
+                  extrasEmpresa: fin.extrasAbsorbed,
+                  instaladorTotal: fin.instaladorTotal,
+                  instaladorAdelantado: fin.instaladorAdelantado,
+                  instaladorPendiente: Math.max(0, fin.instaladorPendiente),
+                  pendientePagar: Math.max(0, fin.instaladorPendiente),
+                };
+                value = map[col.id] ?? 0;
             } else {
                 value = item[col.id as keyof typeof item];
             }
