@@ -8,6 +8,7 @@ import { Timestamp } from 'firebase/firestore';
 import { useAppContext } from '@/contexts/app-context';
 import { useAuth } from '@/hooks/use-auth';
 import { calcProjectFinancials } from '@/lib/project-finance-utils';
+import Link from 'next/link';
 
 const DateCell = ({ date }: { date: any }) => {
   if (!date) return <span className="text-muted-foreground">-</span>;
@@ -49,11 +50,26 @@ export const projectColumns: ColumnDef<Project>[] = [
   {
     accessorKey: 'projectId',
     header: 'ID',
-    cell: ({ row }) => <span className="font-semibold">{row.original.projectId}</span>,
+    cell: ({ row }) => (
+      <Link 
+        href={`/projects/${row.original.id}`}
+        className="font-semibold text-primary hover:underline whitespace-nowrap block"
+      >
+        {row.original.projectId}
+      </Link>
+    ),
   },
   {
     accessorKey: 'name',
     header: 'Proyecto',
+    cell: ({ row }) => (
+      <Link 
+        href={`/projects/${row.original.id}`}
+        className="hover:underline text-primary font-medium"
+      >
+        {row.original.name}
+      </Link>
+    ),
   },
   {
     accessorKey: 'customerName',

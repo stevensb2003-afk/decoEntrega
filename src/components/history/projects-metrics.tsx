@@ -45,7 +45,7 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
     let totalPendientePagar = 0;
 
     // Monthly data for Bar Chart
-    const monthlyDataMap: Record<string, number> = {};
+    const monthlyDataMap: Record<string, { count: number; revenue: number; installerCost: number }> = {};
     
     // Status distribution for Pie Chart
     const statusDataMap: Record<string, number> = {
@@ -105,14 +105,25 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
 
         // Monthly completions
         const monthKey = format(cDate, 'MMM yyyy', { locale: es });
-        monthlyDataMap[monthKey] = (monthlyDataMap[monthKey] || 0) + 1;
+        if (!monthlyDataMap[monthKey]) {
+            monthlyDataMap[monthKey] = { count: 0, revenue: 0, installerCost: 0 };
+        }
+        monthlyDataMap[monthKey].count += 1;
+        monthlyDataMap[monthKey].revenue += fin.totalRevenue;
+        monthlyDataMap[monthKey].installerCost += fin.instaladorTotal;
       }
     });
 
     const punctualityRate = completed.length > 0 ? (onTimeCount / completed.length) * 100 : 0;
     const avgDuration = validDurationCount > 0 ? (totalDays / validDurationCount) : 0;
 
-    const monthlyData = Object.entries(monthlyDataMap).map(([name, Completados]) => ({ name, Completados }));
+    const monthlyData = Object.entries(monthlyDataMap).map(([name, data]) => ({ name, Completados: data.count }));
+    const monthlyFinancials = Object.entries(monthlyDataMap).map(([name, data]) => ({ 
+        name, 
+        Instalador: data.installerCost,
+        Ganancia: data.revenue - data.installerCost,
+        Total: data.revenue
+    }));
     
     const statusData = Object.entries(statusDataMap)
         .filter(([, value]) => value > 0)
@@ -131,6 +142,7 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
       punctualityRate,
       avgDuration,
       monthlyData,
+      monthlyFinancials,
       statusData,
       totalRevenue,
       totalInstallerCost,
@@ -151,7 +163,7 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4 xl:grid-cols-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Proyectos</CardTitle>
@@ -233,7 +245,7 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className={`grid gap-4 grid-cols-1 md:grid-cols-2 ${!isInstaller ? 'lg:grid-cols-3' : ''}`}>
         <Card>
             <CardHeader>
                 <CardTitle className="text-lg font-medium flex items-center gap-2">
@@ -242,7 +254,7 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="h-[300px] w-full">
+                <div className="h-[250px] w-full">
                     {metrics.monthlyData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={metrics.monthlyData}>
@@ -267,7 +279,7 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
                 <CardTitle className="text-lg font-medium">Distribución por Estado</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="h-[300px] w-full">
+                <div className="h-[250px] w-full">
                     {metrics.statusData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -275,8 +287,8 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
                                     data={metrics.statusData}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={100}
+                                    innerRadius={50}
+                                    outerRadius={80}
                                     paddingAngle={2}
                                     dataKey="value"
                                 >
@@ -296,6 +308,46 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
                 </div>
             </CardContent>
         </Card>
+
+        {!isInstaller && (
+          <Card>
+              <CardHeader>
+                  <CardTitle className="text-lg font-medium flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      Ingresos vs Costos Mensuales
+                  </CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <div className="h-[250px] w-full">
+                      {metrics.monthlyFinancials.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={metrics.monthlyFinancials}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                              <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+                              <YAxis 
+                                  fontSize={12} 
+                                  tickLine={false} 
+                                  axisLine={false}
+                                  tickFormatter={(value) => `₡${(value/1000).toFixed(0)}k`}
+                              />
+                              <Tooltip 
+                                  cursor={{fill: 'rgba(0,0,0,0.05)'}} 
+                                  formatter={(value: number) => [`₡${value.toLocaleString('es-CR')}`, undefined]}
+                              />
+                              <Legend verticalAlign="bottom" height={36}/>
+                              <Bar dataKey="Instalador" stackId="a" fill="#f97316" radius={[0, 0, 0, 0]} />
+                              <Bar dataKey="Ganancia" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                          </ResponsiveContainer>
+                      ) : (
+                          <div className="h-full flex items-center justify-center text-muted-foreground">
+                              No hay suficientes datos
+                          </div>
+                      )}
+                  </div>
+              </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
