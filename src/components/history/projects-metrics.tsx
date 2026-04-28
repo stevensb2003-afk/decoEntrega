@@ -57,6 +57,11 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
     };
 
     projects.forEach(p => {
+      // Status Distribution
+      if (statusDataMap[p.status] !== undefined) {
+          statusDataMap[p.status]++;
+      }
+
       // Excluir cancelados de todas las métricas financieras
       if (p.status === 'Cancelado') return;
 
@@ -65,11 +70,6 @@ export function ProjectsMetrics({ projects }: ProjectsMetricsProps) {
       totalRevenue += fin.totalRevenue;
       totalInstallerCost += fin.instaladorTotal;
       totalPendientePagar += Math.max(0, fin.instaladorPendiente);
-
-      // Status Distribution
-      if (statusDataMap[p.status] !== undefined) {
-          statusDataMap[p.status]++;
-      }
 
       if (p.status === 'Completado' && p.completedAt && p.startDate) {
         // Calculate Punctuality
